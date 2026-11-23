@@ -461,6 +461,26 @@
     .hud-value { font-weight: 700; color: #fff; }
     .hud-subvalue { font-size: 11px; color: #38bdf8; font-family: var(--font-mono); }
 
+.hud-action-btn {
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #f8fafc;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      font-size: 15px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-left: 4px;
+      touch-action: manipulation;
+    }
+    .hud-action-btn:active {
+      background: rgba(56, 189, 248, 0.45);
+      transform: scale(0.92);
+    }
     .score-good { color: #22c55e !important; }
     .score-warn { color: #f59e0b !important; }
     .score-bad  { color: #ef4444 !important; }
@@ -823,6 +843,8 @@
       <div class="hud-pill">
         <span id="hud-timer-val" class="hud-value">⏱ 00:00</span>
         <span id="hud-speed-val" class="hud-subvalue">0 km/j</span>
+        <button id="btn-hud-restart" class="hud-action-btn" title="Ulangi (R)">↻</button>
+        <button id="btn-hud-menu" class="hud-action-btn" title="Menu Utama (ESC)">⌂</button>
       </div>
     </div>
 
@@ -1468,7 +1490,7 @@
       const gc = document.createElement('canvas');
       gc.width = 128; gc.height = 128;
       const gctx = gc.getContext('2d');
-      gctx.fillStyle = "#152018"; // Hijau tua rumput lapangan uji
+      gctx.fillStyle = "#2e7d32"; // Hijau tua rumput lapangan uji
       gctx.fillRect(0, 0, 128, 128);
       
       this.groundPattern = this.ctx.createPattern(gc, 'repeat');
@@ -1804,6 +1826,22 @@
         this.dom.matrixInspector.style.display = 'none';
       });
 
+      const btnHudRestart = document.getElementById('btn-hud-restart');
+      if (btnHudRestart) {
+        btnHudRestart.addEventListener('click', () => {
+          this.sound.init();
+          this.reset();
+        });
+      }
+
+      const btnHudMenu = document.getElementById('btn-hud-menu');
+      if (btnHudMenu) {
+        btnHudMenu.addEventListener('click', () => {
+          this.sound.init();
+          this.setState(STATE_MENU);
+        });
+      }
+      
       this.dom.levelBtns.forEach(btn => {
         btn.addEventListener('click', () => {
           this.dom.levelBtns.forEach(b => b.classList.remove('active'));
@@ -2063,7 +2101,7 @@ Setir: ${(this.delta * 180 / Math.PI).toFixed(0)}° | Dilasi: ${this.k.toFixed(1
       this.updateCamera();
 
       // 1. Lapangan Luar / Rumput Sirkuit Nyata
-      ctx.fillStyle = this.groundPattern || "#152018";
+      ctx.fillStyle = this.groundPattern || "#2e7d32";
       ctx.fillRect(0, 0, this.width, this.height);
 
       // 1b. Animasi Rumput Bergoyang
