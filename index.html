@@ -1880,6 +1880,15 @@
         });
       }
 
+      const btnHudMatrix = document.getElementById('btn-hud-matrix');
+      if (btnHudMatrix) {
+        btnHudMatrix.addEventListener('click', () => {
+          this.sound.init();
+          this.showGuides = !this.showGuides;
+          this.dom.matrixInspector.style.display = this.showGuides ? 'block' : 'none';
+        });
+      }
+
       this.dom.levelBtns.forEach(btn => {
         btn.addEventListener('click', () => {
           this.dom.levelBtns.forEach(b => b.classList.remove('active'));
