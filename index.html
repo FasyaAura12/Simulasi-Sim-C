@@ -552,7 +552,7 @@
       pointer-events: auto;
       backdrop-filter: blur(8px);
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-      display: block;
+      display: none;
     }
     .matrix-header {
       display: flex;
@@ -1775,7 +1775,8 @@
       this.dom.finishScreen.classList.toggle('active', newState === STATE_FINISHED);
       const touchEl = document.getElementById('touch-controls');
       if (touchEl) {
-        touchEl.style.display = (newState === STATE_PLAYING) ? 'flex' : 'none';
+        const isTouchOrSmall = window.matchMedia('(max-width: 1100px), (pointer: coarse)').matches;
+        touchEl.style.display = (newState === STATE_PLAYING && isTouchOrSmall) ? 'flex' : 'none';
       }
 
       if (newState === STATE_COUNTDOWN) {
