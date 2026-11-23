@@ -669,10 +669,16 @@
 
     /* On mobile portrait, hide matrix card by default so it doesn't overlap touch buttons */
     @media (max-width: 600px) and (orientation: portrait) {
-      .matrix-card {
-        display: none;
-      }
-    }
+   .matrix-card {
+     display: none;
+     top: 90px;
+     bottom: auto;
+     left: 10px;
+     right: 10px;
+     max-width: none;
+     z-index: 45;
+   }
+ }
 
     /* ==========================================================
        FINISH MODAL DIALOG
@@ -870,6 +876,7 @@
       <div class="hud-pill">
         <span id="hud-timer-val" class="hud-value">⏱ 00:00</span>
         <span id="hud-speed-val" class="hud-subvalue">0 km/j</span>
+        <button id="btn-hud-matrix" class="hud-action-btn" title="Matriks Geometri (G)">📐</button>
         <button id="btn-hud-restart" class="hud-action-btn" title="Ulangi (R)">↻</button>
         <button id="btn-hud-menu" class="hud-action-btn" title="Menu Utama (ESC)">⌂</button>
       </div>
