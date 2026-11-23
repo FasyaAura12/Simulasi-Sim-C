@@ -1,0 +1,2594 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Simulasi Uji Praktik SIM C - Transformasi Geometri (Web Edition)</title>
+  <style>
+    /* ==========================================================
+       RESET & BASE THEME
+       ========================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    :root {
+      --bg: #0b0f1d;
+      --card-bg: rgba(15, 23, 42, 0.92);
+      --card-border: rgba(56, 189, 248, 0.25);
+      --primary: #22c55e;
+      --primary-hover: #16a34a;
+      --primary-glow: rgba(34, 197, 94, 0.4);
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: var(--bg);
+      font-family: var(--font-main);
+      color: var(--text);
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* 60FPS Fullscreen Canvas */
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #0f1423;
+      z-index: 1;
+    }
+
+    /* Flash Merah saat keluar jalur / tabrakan */
+    #flash-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(239, 68, 68, 0.45);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+      z-index: 10;
+    }
+
+    /* ==========================================================
+       OVERLAY SCREENS (Menu, Countdown, Finish, HUD)
+       ========================================================== */
+    .overlay-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      display: none;
+    }
+    .overlay-screen.active {
+      display: flex;
+      pointer-events: auto;
+    }
+
+    /* ==========================================================
+       START MENU (Modern Auto-Layout Responsive Card)
+       ========================================================== */
+    #menu-screen {
+      align-items: center;
+      justify-content: center;
+      padding: clamp(12px, 3vw, 28px);
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.85) 0%, rgba(11, 15, 29, 0.98) 100%);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      overflow-y: auto;
+    }
+
+    .menu-card {
+      width: 100%;
+      max-width: 580px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: clamp(16px, 4vw, 32px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(56, 189, 248, 0.15);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(12px, 2.5vw, 18px);
+      margin: auto;
+      max-height: 94dvh;
+      overflow-y: auto;
+    }
+
+    .menu-badge {
+      display: inline-block;
+      align-self: center;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .menu-title {
+      font-size: clamp(22px, 5vw, 32px);
+      font-weight: 800;
+      color: #fbbf24;
+      text-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
+      line-height: 1.2;
+    }
+
+    .menu-subtitle {
+      font-size: clamp(13px, 2.8vw, 16px);
+      color: var(--text-muted);
+      margin-top: -6px;
+    }
+
+    .level-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+    .level-btn-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .level-btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1.5px solid rgba(71, 85, 105, 0.5);
+      border-radius: 12px;
+      padding: 10px 6px;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s ease;
+    }
+    .level-btn:hover {
+      background: rgba(51, 65, 85, 0.9);
+      border-color: var(--accent);
+    }
+    .level-btn.active {
+      background: rgba(14, 116, 144, 0.4);
+      border-color: var(--accent);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
+    }
+    .level-btn[data-level="1"].active { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); }
+    .level-btn[data-level="2"].active { border-color: #38bdf8; background: rgba(56, 189, 248, 0.2); }
+    .level-btn[data-level="3"].active { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
+
+    .lvl-title { font-weight: 700; font-size: clamp(12px, 2.5vw, 14px); }
+    .lvl-desc { font-size: 10px; color: var(--text-muted); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      padding: clamp(12px, 3vw, 16px) 24px;
+      font-size: clamp(16px, 3.5vw, 20px);
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 24px var(--primary-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .controls-guide-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(51, 65, 85, 0.6);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: left;
+    }
+
+    /* Histori Skor Sesi Ini */
+    .history-box {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 14px;
+      padding: 12px 14px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .history-count-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.15);
+      padding: 2px 8px;
+      border-radius: 9999px;
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 140px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .history-empty {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 10px 0;
+      font-style: italic;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(71, 85, 105, 0.4);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .history-item.pass { border-left: 3px solid #22c55e; }
+    .history-item.fail { border-left: 3px solid #ef4444; }
+    .hist-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hist-badge {
+      font-weight: 800;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .hist-level {
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+    .hist-time {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .hist-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hist-score {
+      font-weight: 800;
+      font-family: var(--font-mono);
+    }
+    .hist-status {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .status-pass { color: #22c55e; background: rgba(34, 197, 94, 0.15); }
+    .status-fail { color: #ef4444; background: rgba(239, 68, 68, 0.15); }
+
+    /* Modal History Chips */
+    .history-preview-box {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 11px;
+      text-align: left;
+    }
+    .preview-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+    .preview-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .preview-chip {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(71, 85, 105, 0.4);
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 10.5px;
+    }
+    .preview-chip.pass { border-color: #22c55e; color: #86efac; }
+    .preview-chip.fail { border-color: #ef4444; color: #fca5a5; }
+    .guide-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 4px 12px;
+      font-size: 11.5px;
+    }
+    .guide-grid kbd {
+      background: rgba(51, 65, 85, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #fff;
+    }
+    .mobile-note {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #38bdf8;
+      text-align: center;
+    }
+
+    /* ==========================================================
+       COUNTDOWN OVERLAY
+       ========================================================== */
+    #countdown-overlay {
+      align-items: center;
+      justify-content: center;
+      background: rgba(11, 15, 29, 0.4);
+      backdrop-filter: blur(2px);
+    }
+    #countdown-number {
+      font-size: clamp(80px, 20vw, 150px);
+      font-weight: 900;
+      color: #fbbf24;
+      text-shadow: 0 4px 30px rgba(251, 191, 36, 0.6);
+      animation: popBounce 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
+    }
+    @keyframes popBounce {
+      0% { transform: scale(0.6); opacity: 0; }
+      50% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.85; }
+    }
+
+    /* ==========================================================
+       HUD OVERLAY (Responsive Bars, Alerts, Speed, Pills)
+       ========================================================== */
+    #hud-overlay {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+      padding: clamp(8px, 2vw, 16px);
+      padding-top: max(8px, env(safe-area-inset-top));
+    }
+
+    /* Top Progress Bar */
+    .progress-container {
+      width: 100%;
+      height: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 9999px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #22c55e);
+      border-radius: 9999px;
+      transition: width 0.1s linear;
+    }
+    .progress-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9.5px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    /* Top Stats Pills */
+    .hud-top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .hud-pill {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: clamp(11px, 2.2vw, 13px);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      pointer-events: auto;
+    }
+    .hud-label { color: var(--text-muted); font-size: 10.5px; }
+    .hud-value { font-weight: 700; color: #fff; }
+    .hud-subvalue { font-size: 11px; color: #38bdf8; font-family: var(--font-mono); }
+
+    .score-good { color: #22c55e !important; }
+    .score-warn { color: #f59e0b !important; }
+    .score-bad  { color: #ef4444 !important; }
+
+    /* Alert Banner (REM! Kotak Kuning / Lajur Ditutup) */
+    .alert-banner {
+      align-self: center;
+      margin-top: 10px;
+      background: rgba(220, 38, 38, 0.92);
+      border: 2px solid #fca5a5;
+      color: #fff;
+      font-weight: 800;
+      font-size: clamp(14px, 3.5vw, 20px);
+      padding: 8px 20px;
+      border-radius: 9999px;
+      box-shadow: 0 4px 20px rgba(220, 38, 38, 0.5);
+      animation: alertPulse 0.8s ease-in-out infinite alternate;
+      display: none;
+      text-align: center;
+    }
+    @keyframes alertPulse {
+      from { transform: scale(0.98); }
+      to { transform: scale(1.02); }
+    }
+
+    /* Toast Notifications Container */
+    #toast-container {
+      position: absolute;
+      top: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      pointer-events: none;
+      z-index: 50;
+      width: 90%;
+      max-width: 400px;
+    }
+    .toast-msg {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      font-weight: 700;
+      font-size: clamp(12px, 2.5vw, 14px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      animation: toastIn 0.2s ease-out;
+      text-align: center;
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Matrix Transform Card (Kiri Bawah) */
+    .matrix-card {
+      position: absolute;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      left: max(16px, env(safe-area-inset-left));
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 11px;
+      max-width: 320px;
+      pointer-events: auto;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      display: block;
+    }
+    .matrix-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 10.5px;
+    }
+    .matrix-code {
+      font-family: var(--font-mono);
+      line-height: 1.35;
+      color: #bae6fd;
+      font-size: 10px;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 4px;
+    }
+    .icon-btn:hover { color: #fff; }
+
+    /* ==========================================================
+       TOUCH CONTROLS (Mobile Two-Thumb Gaming Layout)
+       ========================================================== */
+    #touch-controls {
+      display: none; /* Auto-shown on touch devices */
+      position: fixed;
+      bottom: max(16px, calc(env(safe-area-inset-bottom) + 12px));
+      left: max(14px, env(safe-area-inset-left));
+      right: max(14px, env(safe-area-inset-right));
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    .touch-cluster {
+      display: flex;
+      gap: 12px;
+      pointer-events: auto;
+      align-items: flex-end;
+    }
+
+    .touch-btn {
+      width: clamp(56px, 12vw, 68px);
+      height: clamp(56px, 12vw, 68px);
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.85);
+      border: 2.5px solid rgba(56, 189, 248, 0.5);
+      color: #fff;
+      font-weight: 800;
+      font-size: clamp(16px, 4vw, 22px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+      touch-action: manipulation;
+      transition: transform 0.08s, background 0.08s, border-color 0.08s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .touch-btn:active, .touch-btn.pressed {
+      transform: scale(0.92);
+      background: rgba(56, 189, 248, 0.35);
+      border-color: #38bdf8;
+    }
+
+    .btn-gas {
+      background: rgba(22, 163, 74, 0.85);
+      border-color: #4ade80;
+      width: clamp(64px, 14vw, 76px);
+      height: clamp(64px, 14vw, 76px);
+      font-size: clamp(14px, 3.5vw, 17px);
+    }
+    .btn-gas:active, .btn-gas.pressed {
+      background: #16a34a;
+      border-color: #86efac;
+    }
+
+    .btn-brake {
+      background: rgba(220, 38, 38, 0.85);
+      border-color: #f87171;
+      width: clamp(60px, 13vw, 70px);
+      height: clamp(60px, 13vw, 70px);
+      font-size: clamp(13px, 3.2vw, 16px);
+    }
+    .btn-brake:active, .btn-brake.pressed {
+      background: #dc2626;
+      border-color: #fca5a5;
+    }
+
+    .btn-foot {
+      width: clamp(48px, 10vw, 56px);
+      height: clamp(48px, 10vw, 56px);
+      background: rgba(217, 119, 6, 0.85);
+      border-color: #fbbf24;
+      font-size: clamp(10px, 2.5vw, 12px);
+    }
+    .btn-foot:active, .btn-foot.pressed {
+      background: #d97706;
+      border-color: #fde68a;
+    }
+
+    /* Auto show touch controls on mobile & touch displays */
+    @media (pointer: coarse), (hover: none), (max-width: 900px) {
+      #touch-controls {
+        display: flex;
+      }
+    }
+
+    /* On mobile portrait, hide matrix card by default so it doesn't overlap touch buttons */
+    @media (max-width: 600px) and (orientation: portrait) {
+      .matrix-card {
+        display: none;
+      }
+    }
+
+    /* ==========================================================
+       FINISH MODAL DIALOG
+       ========================================================== */
+    #finish-screen {
+      align-items: center;
+      justify-content: center;
+      background: rgba(11, 15, 29, 0.8);
+      backdrop-filter: blur(8px);
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 24px;
+      padding: clamp(20px, 5vw, 32px);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+      margin: auto;
+      max-height: 94dvh;
+      overflow-y: auto;
+    }
+    .modal-card.pass { border-color: #22c55e; box-shadow: 0 0 40px rgba(34, 197, 94, 0.25); }
+    .modal-card.fail { border-color: #ef4444; box-shadow: 0 0 40px rgba(239, 68, 68, 0.25); }
+
+    .result-icon { font-size: clamp(40px, 8vw, 60px); line-height: 1; }
+    .result-title {
+      font-size: clamp(22px, 5vw, 32px);
+      font-weight: 800;
+      color: #fff;
+    }
+    .pass .result-title { color: #22c55e; }
+    .fail .result-title { color: #ef4444; }
+
+    .score-summary-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      border-radius: 16px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .score-main {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 6px;
+    }
+    .score-digit {
+      font-size: clamp(36px, 8vw, 48px);
+      font-weight: 900;
+      font-family: var(--font-mono);
+      color: #22c55e;
+    }
+    .score-max { font-size: 18px; color: var(--text-muted); }
+
+    .score-bar-track {
+      width: 100%;
+      height: 12px;
+      background: #1e293b;
+      border-radius: 9999px;
+      position: relative;
+      overflow: visible;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: #22c55e;
+      transition: width 0.6s ease;
+    }
+    .threshold-line {
+      position: absolute;
+      left: 70%;
+      top: -3px;
+      bottom: -3px;
+      width: 2px;
+      background: #f59e0b;
+    }
+
+    .score-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .faults-list-box {
+      text-align: left;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 12px;
+      padding: 10px 14px;
+      max-height: 130px;
+      overflow-y: auto;
+    }
+    .faults-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #f59e0b;
+      margin-bottom: 6px;
+    }
+    #finish-faults-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11.5px;
+      color: #fca5a5;
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(71, 85, 105, 0.6);
+      color: #cbd5e1;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: clamp(14px, 3vw, 16px);
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-secondary:active { background: rgba(51, 65, 85, 0.9); }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Dynamic 60FPS Game Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Red Flash Effect -->
+  <div id="flash-overlay"></div>
+
+  <!-- HUD In-Game Overlay -->
+  <div id="hud-overlay" class="overlay-screen">
+    <!-- Top Progress Bar -->
+    <div class="progress-container">
+      <div id="hud-progress-fill" class="progress-fill"></div>
+      <div id="hud-progress-text" class="progress-text">Lintasan: 0%</div>
+    </div>
+
+    <!-- Header Stats Bar -->
+    <div class="hud-top-bar">
+      <div class="hud-pill">
+        <span class="hud-label">Materi:</span>
+        <span id="hud-stage-name" class="hud-value">Uji Pengereman</span>
+      </div>
+
+      <div class="hud-pill">
+        <span class="hud-label">Skor:</span>
+        <span id="hud-score-val" class="hud-value score-good">100</span>
+      </div>
+
+      <div class="hud-pill">
+        <span id="hud-timer-val" class="hud-value">⏱ 00:00</span>
+        <span id="hud-speed-val" class="hud-subvalue">0 km/j</span>
+      </div>
+    </div>
+
+    <!-- Situational Alert (REM / LAJUR TERTUTUP) -->
+    <div id="hud-alert-banner" class="alert-banner"></div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Matrix Transform Inspector (Bottom Left) -->
+    <div id="matrix-inspector" class="matrix-card">
+      <div class="matrix-header">
+        <span>Transformasi Geometri 3x3</span>
+        <button id="btn-toggle-matrix" class="icon-btn">✕</button>
+      </div>
+      <div id="matrix-content" class="matrix-code"></div>
+    </div>
+  </div>
+
+  <!-- Countdown Overlay (3, 2, 1, GO!) -->
+  <div id="countdown-overlay" class="overlay-screen">
+    <div id="countdown-number">3</div>
+  </div>
+
+  <!-- Start Menu Screen -->
+  <div id="menu-screen" class="overlay-screen active">
+    <div class="menu-card">
+      <div class="menu-badge">SIMULASI SIM C 2.0</div>
+      <h1 class="menu-title">UJI PRAKTIK SIM C</h1>
+      <p class="menu-subtitle">Transformasi Geometri | Versi Web</p>
+
+      <div class="level-section">
+        <div class="section-label">PILIH TINGKAT KESULITAN</div>
+        <div class="level-btn-group">
+          <button class="level-btn" data-level="1">
+            <span class="lvl-title">1 - Mudah</span>
+            <span class="lvl-desc">Dilasi x1.15 (2.07m)</span>
+          </button>
+          <button class="level-btn active" data-level="2">
+            <span class="lvl-title">2 - Standar</span>
+            <span class="lvl-desc">Dilasi x1.00 (1.80m)</span>
+          </button>
+          <button class="level-btn" data-level="3">
+            <span class="lvl-title">3 - Sulit</span>
+            <span class="lvl-desc">Dilasi x0.85 (1.53m)</span>
+          </button>
+        </div>
+      </div>
+
+      <button id="btn-start-game" class="btn-primary">
+        <span>▶</span> MULAI SIMULASI
+      </button>
+
+      <!-- Histori Skor Sesi Ini -->
+      <div id="history-section" class="history-box">
+        <div class="history-header">
+          <span class="guide-title">HISTORI SKOR SESI INI</span>
+          <span id="history-count" class="history-count-badge">0 Percobaan</span>
+        </div>
+        <div id="history-list" class="history-list">
+          <div class="history-empty">Belum ada riwayat ujian pada sesi ini.</div>
+        </div>
+      </div>
+
+      <div class="controls-guide-box">
+        <div class="guide-title">PANDUAN KONTROL</div>
+        <div class="guide-grid">
+          <div><kbd>W</kbd> / <kbd>↑</kbd> Gas</div>
+          <div><kbd>S</kbd> / <kbd>↓</kbd> Rem</div>
+          <div><kbd>A</kbd> / <kbd>←</kbd> Belok Kiri</div>
+          <div><kbd>D</kbd> / <kbd>→</kbd> Belok Kanan</div>
+          <div><kbd>F</kbd> Kaki Turun (-5)</div>
+          <div><kbd>G</kbd> Matriks Geometri</div>
+          <div><kbd>R</kbd> Ulangi</div>
+          <div><kbd>ESC</kbd> Menu Utama</div>
+        </div>
+        <div class="mobile-note">📱 Pada perangkat HP/Tablet, gunakan tombol virtual di layar.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finish Popup Dialog -->
+  <div id="finish-screen" class="overlay-screen">
+    <div id="finish-modal-box" class="modal-card pass">
+      <div id="finish-icon" class="result-icon">🏆</div>
+      <h2 id="finish-title" class="result-title">LULUS UJI PRAKTIK!</h2>
+      
+      <div class="score-summary-box">
+        <div class="score-main">
+          <span class="label">SKOR AKHIR:</span>
+          <span id="finish-score-number" class="score-digit">100</span>
+          <span class="score-max">/ 100</span>
+        </div>
+        <div class="score-bar-track">
+          <div id="finish-score-bar" class="score-bar-fill" style="width: 100%;"></div>
+          <div class="threshold-line" title="Batas Lulus (70)"></div>
+        </div>
+        <div class="score-legend">
+          <span>Syarat Kelulusan: Skor Minimal 70</span>
+          <span id="finish-time-text">Waktu: 00:00</span>
+        </div>
+      </div>
+
+      <div class="faults-list-box">
+        <div class="faults-title">Catatan Pelanggaran:</div>
+        <ul id="finish-faults-list">
+          <li>✓ Tidak ada pelanggaran! Sempurna.</li>
+        </ul>
+      </div>
+
+      <!-- Preview Histori Sesi Ini di Modal Selesai -->
+      <div id="modal-history-preview" class="history-preview-box"></div>
+
+      <div class="modal-actions">
+        <button id="btn-replay" class="btn-primary">▶ MAIN LAGI</button>
+        <button id="btn-to-menu" class="btn-secondary">⌂ KE MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Responsive Touch Controls (Fixed above mobile gesture bar) -->
+  <div id="touch-controls">
+    <!-- Left Hand: Steer Left & Right -->
+    <div class="touch-cluster">
+      <button class="touch-btn" id="btn-left" aria-label="Belok Kiri">◀</button>
+      <button class="touch-btn" id="btn-right" aria-label="Belok Kanan">▶</button>
+    </div>
+    <!-- Right Hand: Kaki, Rem, Gas -->
+    <div class="touch-cluster">
+      <button class="touch-btn btn-foot" id="btn-foot">KAKI</button>
+      <button class="touch-btn btn-brake" id="btn-brake">REM</button>
+      <button class="touch-btn btn-gas" id="btn-gas">GAS</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ==========================================================
+  // KONFIGURASI GEOMETRI SIM C
+  // ==========================================================
+  const LANE_W = 1.8;
+  const MOTOR_L = 2.0;
+  const MOTOR_W = 0.75;
+  const WHEELBASE = 1.3;
+  const V_MAX = 11.0;     // ~40 km/jam
+  const ACC = 2.4;
+  const BRAKE = 6.0;
+  const CONE_R = 0.13;
+
+  const REM_X = 9.0;
+  const BOX_X0 = 15.0;
+  const BOX_X1 = 19.0;
+
+  const LEVELS = {
+    1: { name: "Mudah", scale: 1.15, color: "#22c55e" },
+    2: { name: "Standar", scale: 1.00, color: "#38bdf8" },
+    3: { name: "Sulit", scale: 0.85, color: "#ef4444" }
+  };
+
+  const STATE_MENU = "menu";
+  const STATE_COUNTDOWN = "countdown";
+  const STATE_PLAYING = "playing";
+  const STATE_FINISHED = "finished";
+
+  // Warna Rendering Canvas
+  const ROAD_COLOR = "#232837";
+  const EDGE_COLOR = "#dce6ff";
+  const WHITE = "#f0f0ff";
+  const YELLOW = "#ffd728";
+  const CONE_COLOR = "#ff8214";
+  const CONE_HIT = "#e74c3c";
+  const CAR_COLOR = "#dc3232";
+  const WHEEL_COLOR = "#14141e";
+  const RIDER_COLOR = "#3282dc";
+  const GREEN = "#22c55e";
+  const BLUE = "#38bdf8";
+  const RED = "#ef4444";
+  const MAGENTA = "#ff3cc8";
+
+  // ==========================================================
+  // MATRIKS TRANSFORMASI HOMOGEN 3x3
+  // ==========================================================
+  function matMul(A, B) {
+    const C = [[0,0,0],[0,0,0],[0,0,0]];
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        C[i][j] = A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j];
+      }
+    }
+    return C;
+  }
+
+  function matTranslate(tx, ty) {
+    return [[1, 0, tx], [0, 1, ty], [0, 0, 1]];
+  }
+
+  function matRotate(a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [[c, -s, 0], [s, c, 0], [0, 0, 1]];
+  }
+
+  function matScale(k) {
+    return [[k, 0, 0], [0, k, 0], [0, 0, 1]];
+  }
+
+  function applyMat(M, x, y) {
+    return [
+      M[0][0] * x + M[0][1] * y + M[0][2],
+      M[1][0] * x + M[1][1] * y + M[1][2]
+    ];
+  }
+
+  function inverseAffine(M) {
+    const a = M[0][0], b = M[0][1], tx = M[0][2];
+    const c = M[1][0], d = M[1][1], ty = M[1][2];
+    const det = a * d - b * c;
+    const ia = d / det, ib = -b / det, ic = -c / det, id = a / det;
+    return [
+      [ia, ib, -(ia * tx + ib * ty)],
+      [ic, id, -(ic * tx + id * ty)],
+      [0, 0, 1]
+    ];
+  }
+
+  function rectPts(cx, cy, length, width) {
+    const hl = length / 2, hw = width / 2;
+    return [
+      [cx - hl, cy - hw],
+      [cx + hl, cy - hw],
+      [cx + hl, cy + hw],
+      [cx - hl, cy + hw]
+    ];
+  }
+
+  function clamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+
+  // ==========================================================
+  // WEB AUDIO SYNTHESIZER
+  // ==========================================================
+  class SoundPlayer {
+    constructor() {
+      this.ctx = null;
+    }
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+    hit() {
+      if (!this.ctx) return;
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      } catch (e) {}
+    }
+    fanfare() {
+      if (!this.ctx) return;
+      try {
+        const notes = [523, 659, 784, 1047];
+        const step = 0.12;
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * step);
+          gain.gain.setValueAtTime(0.28, this.ctx.currentTime + i * step);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + (i + 1) * step);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + i * step);
+          osc.stop(this.ctx.currentTime + (i + 1) * step);
+        });
+      } catch (e) {}
+    }
+    beep(freq = 600, dur = 0.08) {
+      if (!this.ctx) return;
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + dur);
+      } catch (e) {}
+    }
+  }
+
+  // ==========================================================
+  // PEMBUAT LINTASAN (PATH BUILDER & GEOMETRI)
+  // ==========================================================
+  class PathBuilder {
+    constructor(x, y, headingDeg) {
+      this.x = x;
+      this.y = y;
+      this.h = (headingDeg * Math.PI) / 180;
+      this.pts = [[x, y]];
+      this.length = 0.0;
+    }
+    straight(L) {
+      this.x += L * Math.cos(this.h);
+      this.y += L * Math.sin(this.h);
+      this.pts.push([this.x, this.y]);
+      this.length += L;
+    }
+    arc(radius, deg, sign, step = 5) {
+      const n = Math.max(1, Math.ceil(deg / step));
+      const dth = ((deg * Math.PI) / 180) / n;
+      const a = sign * dth;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      for (let i = 0; i < n; i++) {
+        const cx = this.x - sign * radius * Math.sin(this.h);
+        const cy = this.y + sign * radius * Math.cos(this.h);
+        const vx = this.x - cx, vy = this.y - cy;
+        this.x = cx + vx * ca - vy * sa;
+        this.y = cy + vx * sa + vy * ca;
+        this.h += a;
+        this.pts.push([this.x, this.y]);
+        this.length += radius * dth;
+      }
+    }
+  }
+
+  class Poly {
+    constructor(pts) {
+      this.pts = pts;
+      this.cum = [0.0];
+      for (let i = 1; i < pts.length; i++) {
+        const dx = pts[i][0] - pts[i - 1][0];
+        const dy = pts[i][1] - pts[i - 1][1];
+        this.cum.push(this.cum[this.cum.length - 1] + Math.hypot(dx, dy));
+      }
+      this.length = this.cum[this.cum.length - 1];
+    }
+    pointAt(s) {
+      s = clamp(s, 0, this.length);
+      let idx = 0;
+      for (let i = 0; i < this.cum.length - 1; i++) {
+        if (s >= this.cum[i] && s <= this.cum[i + 1]) {
+          idx = i;
+          break;
+        }
+      }
+      idx = Math.min(idx, this.pts.length - 2);
+      const [x1, y1] = this.pts[idx];
+      const [x2, y2] = this.pts[idx + 1];
+      const seg = this.cum[idx + 1] - this.cum[idx];
+      const t = seg > 0 ? (s - this.cum[idx]) / seg : 0;
+      const tx = (x2 - x1) / seg;
+      const ty = (y2 - y1) / seg;
+      return [[x1 + t * (x2 - x1), y1 + t * (y2 - y1)], [tx, ty]];
+    }
+  }
+
+  class Track {
+    constructor(widthScale = 1.0) {
+      this.w = LANE_W * widthScale;
+      this._buildPaths();
+      this._buildSegments();
+      this._buildCones();
+      this._buildDecor();
+    }
+    _buildPaths() {
+      const r_u = 10 / Math.PI;
+      const r_s = 2.4;
+      const l_s = (35 - 3 * Math.PI * r_s) / 2;
+      const b = new PathBuilder(0, 0, 0);
+      const marks = [];
+
+      const sec = (name, title, spacing) => marks.push([b.length, name, title, spacing]);
+
+      sec("brake", "Materi 1: Uji Pengereman", 2.5);
+      b.straight(20);
+      sec("uturn", "Materi 2: Uji U-turn", 3.0);
+      b.arc(r_u, 180, +1);
+      sec("link1", "Jalur Penghubung", 3.0);
+      b.straight(8);
+      sec("s", "Materi 3: Uji Huruf S", 2.5);
+      b.arc(r_s, 180, -1);
+      b.straight(l_s);
+      b.arc(r_s, 180, +1);
+      b.straight(l_s);
+      b.arc(r_s, 180, -1);
+      sec("link2", "Jalur Penghubung", 3.0);
+      b.straight(14);
+      b.arc(2.5, 90, -1);
+      sec("avoid", "Materi 4: Rem Menghindar", 3.0);
+      b.straight(18.4);
+
+      this.main = new Poly(b.pts);
+      this.total = this.main.length;
+      this.sections = [];
+      for (let i = 0; i < marks.length; i++) {
+        const s0 = marks[i][0];
+        const s1 = i + 1 < marks.length ? marks[i + 1][0] : this.total;
+        this.sections.push([s0, s1, marks[i][1], marks[i][2], marks[i][3]]);
+      }
+
+      this.fork = [b.x, b.y];
+      const [fx, fy] = this.fork;
+      this.branchOff = 1.4;
+      this.branches = {
+        L: new Poly([[fx, fy], [fx - 1.4, fy - 4.0], [fx - 1.4, fy - 5.6], [fx - 1.4, fy - 8.6]]),
+        R: new Poly([[fx, fy], [fx + 1.4, fy - 4.0], [fx + 1.4, fy - 5.6], [fx + 1.4, fy - 8.6]])
+      };
+      this.polys = [this.main, this.branches.L, this.branches.R];
+      this.stop_y0 = fy - 8.1;
+      this.stop_y1 = fy - 5.6;
+      this.rem_stem_y = fy + 9.0;
+      this.reveal_s = this.total - 9.0;
+    }
+
+    _buildSegments() {
+      this.segs = [];
+      this.mainSegs = [];
+      this.polys.forEach((poly, pi) => {
+        for (let i = 0; i < poly.pts.length - 1; i++) {
+          const [x1, y1] = poly.pts[i];
+          const [x2, y2] = poly.pts[i + 1];
+          const dx = x2 - x1, dy = y2 - y1;
+          const l2 = dx * dx + dy * dy;
+          if (l2 === 0) continue;
+          this.segs.push([x1, y1, dx, dy, l2]);
+          if (pi === 0) {
+            this.mainSegs.push([x1, y1, dx, dy, l2, Math.sqrt(l2), poly.cum[i]]);
+          }
+        }
+      });
+    }
+
+    distToRoad(x, y) {
+      let best = 1e9;
+      for (const [x1, y1, dx, dy, l2] of this.segs) {
+        const t = clamp(((x - x1) * dx + (y - y1) * dy) / l2, 0, 1);
+        const ex = x - (x1 + t * dx);
+        const ey = y - (y1 + t * dy);
+        const d = ex * ex + ey * ey;
+        if (d < best) best = d;
+      }
+      return Math.sqrt(best);
+    }
+
+    inside(x, y) {
+      const r2 = (this.w / 2) ** 2;
+      for (const [x1, y1, dx, dy, l2] of this.segs) {
+        const t = clamp(((x - x1) * dx + (y - y1) * dy) / l2, 0, 1);
+        const ex = x - (x1 + t * dx);
+        const ey = y - (y1 + t * dy);
+        if (ex * ex + ey * ey <= r2) return true;
+      }
+      return false;
+    }
+
+    progress(x, y, sPrev) {
+      let best = null;
+      for (const [x1, y1, dx, dy, l2, ln, s0] of this.mainSegs) {
+        if (s0 + ln < sPrev - 5 || s0 > sPrev + 8) continue;
+        const t = clamp(((x - x1) * dx + (y - y1) * dy) / l2, 0, 1);
+        const ex = x - (x1 + t * dx);
+        const ey = y - (y1 + t * dy);
+        const d = ex * ex + ey * ey;
+        if (best === null || d < best[0]) {
+          best = [d, s0 + t * ln];
+        }
+      }
+      return best ? best[1] : sPrev;
+    }
+
+    sectionAt(s) {
+      for (const [s0, s1, name, title] of this.sections) {
+        if (s >= s0 && s < s1) return { name, title };
+      }
+      const last = this.sections[this.sections.length - 1];
+      return { name: last[2], title: last[3] };
+    }
+
+    _buildCones() {
+      const raw = [];
+      const half = this.w / 2;
+
+      const sample = (poly, s0, s1, spacing) => {
+        let s = s0;
+        while (s < s1 - 1e-6) {
+          const [[px, py], [tx, ty]] = poly.pointAt(s);
+          for (const side of [-1, 1]) {
+            raw.push([px - ty * half * side, py + tx * half * side]);
+          }
+          s += spacing;
+        }
+      };
+
+      for (const [s0, s1, , , sp] of this.sections) {
+        sample(this.main, s0, s1, sp);
+      }
+      sample(this.branches.L, 0, this.branches.L.length, 3.0);
+      sample(this.branches.R, 0, this.branches.R.length, 3.0);
+
+      this.cones = [];
+      for (const [x, y] of raw) {
+        if (this.distToRoad(x, y) >= half - 0.06) {
+          this.cones.push({ x, y, hit: false });
+        }
+      }
+    }
+
+    _buildDecor() {
+      this.dashes = [];
+      this.arrows = [];
+      for (const poly of this.polys) {
+        let s = 0.4;
+        while (s + 0.5 < poly.length) {
+          const [p1] = poly.pointAt(s);
+          const [p2] = poly.pointAt(s + 0.5);
+          this.dashes.push([p1, p2]);
+          s += 1.1;
+        }
+        s = 2.0;
+        while (s < poly.length - 0.6) {
+          const [[px, py], [tx, ty]] = poly.pointAt(s);
+          const nx = -ty, ny = tx;
+          const tip = [px + tx * 0.5, py + ty * 0.5];
+          const l = [px - tx * 0.25 + nx * 0.3, py - ty * 0.25 + ny * 0.3];
+          const r = [px - tx * 0.25 - nx * 0.3, py - ty * 0.25 - ny * 0.3];
+          this.arrows.push([tip, l, r]);
+          s += 4.0;
+        }
+      }
+      let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+      for (const poly of this.polys) {
+        for (const [px, py] of poly.pts) {
+          if (px < minX) minX = px;
+          if (px > maxX) maxX = px;
+          if (py < minY) minY = py;
+          if (py > maxY) maxY = py;
+        }
+      }
+      this.bbox = [minX - 2, minY - 2, maxX + 2, maxY + 2];
+    }
+  }
+
+  // ==========================================================
+  // EFEK PARTIKEL & BINTANG
+  // ==========================================================
+  class Particle {
+    constructor(x, y, color, vx, vy, life, size, gravity = 0) {
+      this.x = x;
+      this.y = y;
+      this.color = color;
+      this.vx = vx ?? (Math.random() * 6 - 3);
+      this.vy = vy ?? (Math.random() * 6 - 5);
+      this.life = life ?? (0.4 + Math.random() * 0.8);
+      this.maxLife = this.life;
+      this.size = size ?? (3 + Math.floor(Math.random() * 5));
+      this.gravity = gravity;
+    }
+    update(dt) {
+      this.x += this.vx * dt * 60;
+      this.y += this.vy * dt * 60;
+      this.vy += this.gravity * dt * 60;
+      this.life -= dt;
+      return this.life > 0;
+    }
+    draw(ctx) {
+      const alpha = Math.max(0, this.life / this.maxLife);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, Math.max(1, this.size * alpha), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ==========================================================
+  // ENGINE GAME UTAMA
+  // ==========================================================
+  class Game {
+    constructor(canvas) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.sound = new SoundPlayer();
+
+      this.width = window.innerWidth;
+      this.height = window.innerHeight;
+
+      this.level = 2;
+      this.k = 34.0;
+      this.targetK = 34.0;
+      this.showGuides = false;
+      this.overview = false;
+
+      this.state = STATE_MENU;
+      this.countdownVal = 3;
+      this.countdownTimer = 1.0;
+
+      this.particles = [];
+      this.toasts = [];
+
+      this.keys = {};
+      this.touchState = { gas: false, brake: false, left: false, right: false };
+
+      this.setLevel(2);
+      this.cam = [this.x, this.y];
+
+      this.initTextures();
+      this.history = this.loadHistory();
+      this.cacheDOMElements();
+      this.bindEvents();
+      this.handleResize();
+      this.renderHistory();
+    }
+
+    initTextures() {
+      // 1. Aspal Tekstur Agregat Batu Nyata (128x128 repeat)
+      const ac = document.createElement('canvas');
+      ac.width = 128; ac.height = 128;
+      const actx = ac.getContext('2d');
+      actx.fillStyle = "#22252c"; // Abu-abu aspal gelap
+      actx.fillRect(0, 0, 128, 128);
+      
+      this.asphaltPattern = this.ctx.createPattern(ac, 'repeat');
+
+      // 2. Lapangan Luar / Rumput Sirkuit (128x128 repeat)
+      const gc = document.createElement('canvas');
+      gc.width = 128; gc.height = 128;
+      const gctx = gc.getContext('2d');
+      gctx.fillStyle = "#152018"; // Hijau tua rumput lapangan uji
+      gctx.fillRect(0, 0, 128, 128);
+      
+      this.groundPattern = this.ctx.createPattern(gc, 'repeat');
+    }
+
+    loadHistory() {
+      try {
+        const raw = sessionStorage.getItem('sim_c_history');
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    recordAttempt() {
+      const mm = String(Math.floor(this.time / 60)).padStart(2, '0');
+      const ss = String(Math.floor(this.time % 60)).padStart(2, '0');
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const item = {
+        attempt: this.history.length + 1,
+        score: this.score,
+        passed: this.passed,
+        levelName: LEVELS[this.level].name,
+        duration: `${mm}:${ss}`,
+        faultsCount: this.faults.length,
+        timeStr: timeStr
+      };
+
+      this.history.unshift(item);
+      try {
+        sessionStorage.setItem('sim_c_history', JSON.stringify(this.history));
+      } catch (e) {}
+
+      this.renderHistory();
+    }
+
+    renderHistory() {
+      const listEl = document.getElementById('history-list');
+      const countEl = document.getElementById('history-count');
+      const previewEl = document.getElementById('modal-history-preview');
+
+      if (countEl) {
+        countEl.innerText = `${this.history.length} Percobaan`;
+      }
+
+      if (listEl) {
+        if (this.history.length === 0) {
+          listEl.innerHTML = `<div class="history-empty">Belum ada riwayat ujian pada sesi ini.</div>`;
+        } else {
+          listEl.innerHTML = this.history.map(item => `
+            <div class="history-item ${item.passed ? 'pass' : 'fail'}">
+              <div class="hist-left">
+                <span class="hist-badge">#${item.attempt}</span>
+                <span class="hist-level">${item.levelName}</span>
+                <span class="hist-time">⏱ ${item.duration}</span>
+              </div>
+              <div class="hist-right">
+                <span class="hist-score ${item.score >= 80 ? 'score-good' : (item.score >= 70 ? 'score-warn' : 'score-bad')}">${item.score} pts</span>
+                <span class="hist-status ${item.passed ? 'status-pass' : 'status-fail'}">${item.passed ? 'LULUS 🏆' : 'GAGAL ✗'}</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      if (previewEl) {
+        if (this.history.length > 0) {
+          previewEl.style.display = 'block';
+          previewEl.innerHTML = `
+            <div class="preview-title">Riwayat Sesi Ini (${this.history.length}x):</div>
+            <div class="preview-chips">
+              ${this.history.slice(0, 6).map(h => `
+                <span class="preview-chip ${h.passed ? 'pass' : 'fail'}">
+                  #${h.attempt}: <strong>${h.score}</strong> ${h.passed ? '✓' : '✗'}
+                </span>
+              `).join('')}
+            </div>
+          `;
+        } else {
+          previewEl.style.display = 'none';
+        }
+      }
+    }
+
+    cacheDOMElements() {
+      this.dom = {
+        menuScreen: document.getElementById('menu-screen'),
+        hudOverlay: document.getElementById('hud-overlay'),
+        countdownOverlay: document.getElementById('countdown-overlay'),
+        countdownNumber: document.getElementById('countdown-number'),
+        finishScreen: document.getElementById('finish-screen'),
+        finishModalBox: document.getElementById('finish-modal-box'),
+        finishIcon: document.getElementById('finish-icon'),
+        finishTitle: document.getElementById('finish-title'),
+        finishScoreNumber: document.getElementById('finish-score-number'),
+        finishScoreBar: document.getElementById('finish-score-bar'),
+        finishTimeText: document.getElementById('finish-time-text'),
+        finishFaultsList: document.getElementById('finish-faults-list'),
+        btnStartGame: document.getElementById('btn-start-game'),
+        btnReplay: document.getElementById('btn-replay'),
+        btnToMenu: document.getElementById('btn-to-menu'),
+        levelBtns: document.querySelectorAll('.level-btn'),
+        hudProgressFill: document.getElementById('hud-progress-fill'),
+        hudProgressText: document.getElementById('hud-progress-text'),
+        hudStageName: document.getElementById('hud-stage-name'),
+        hudScoreVal: document.getElementById('hud-score-val'),
+        hudTimerVal: document.getElementById('hud-timer-val'),
+        hudSpeedVal: document.getElementById('hud-speed-val'),
+        hudAlertBanner: document.getElementById('hud-alert-banner'),
+        toastContainer: document.getElementById('toast-container'),
+        matrixInspector: document.getElementById('matrix-inspector'),
+        matrixContent: document.getElementById('matrix-content'),
+        btnToggleMatrix: document.getElementById('btn-toggle-matrix'),
+        flashOverlay: document.getElementById('flash-overlay')
+      };
+    }
+
+    handleResize() {
+      this.width = window.innerWidth;
+      this.height = window.innerHeight;
+      this.canvas.width = this.width;
+      this.canvas.height = this.height;
+
+      // Adaptif Zoom kamera berdasarkan ukuran layar HP/Tablet/Desktop
+      const minDim = Math.min(this.width, this.height);
+      this.targetK = clamp(minDim / 15, 26, 40);
+      this.k = this.targetK;
+    }
+
+    setLevel(level) {
+      this.level = level;
+      this.track = new Track(LEVELS[level].scale);
+      this.reset();
+    }
+
+    reset() {
+      this.x = 1.3;
+      this.y = 0.0;
+      this.th = 0.0;
+      this.v = 0.0;
+      this.delta = 0.0;
+      this.s = 0.0;
+      this.faults = [];
+      this.toasts = [];
+      this.track.cones.forEach(c => c.hit = false);
+      this.blocked = Math.random() < 0.5 ? "L" : "R";
+      this.remOn = false;
+      this.brakeDone = false;
+      this.revealed = false;
+      this.branch = null;
+      this.finished = false;
+      this.passed = false;
+      this.wrongLane = false;
+      this.started = false;
+      this.time = 0.0;
+      this.wasOut = false;
+      this.laneCd = 0.0;
+      this.particles = [];
+      this.cam = [this.x, this.y];
+      this.V = matTranslate(this.width / 2, this.height / 2);
+      this.model = matTranslate(this.x, this.y);
+
+      if (this.dom && this.dom.hudAlertBanner) {
+        this.dom.hudAlertBanner.style.display = 'none';
+      }
+    }
+
+    get score() {
+      const penalty = this.faults.reduce((sum, f) => sum + f.pts, 0);
+      return Math.max(0, 100 - penalty);
+    }
+
+    triggerFlash() {
+      if (!this.dom.flashOverlay) return;
+      this.dom.flashOverlay.style.opacity = '1';
+      setTimeout(() => {
+        if (this.dom.flashOverlay) this.dom.flashOverlay.style.opacity = '0';
+      }, 160);
+    }
+
+    showToast(text, color = "#ef4444") {
+      const toast = document.createElement('div');
+      toast.className = 'toast-msg';
+      toast.style.borderColor = color;
+      toast.style.color = color;
+      toast.innerText = text;
+      this.dom.toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 2500);
+    }
+
+    fault(text, pts) {
+      this.faults.push({ text, pts });
+      this.showToast(`-${pts} ${text}`, "#fca5a5");
+      this.triggerFlash();
+      const [sx, sy] = this.toScreen(this.x, this.y);
+      for (let i = 0; i < 18; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const spd = 2 + Math.random() * 5;
+        this.particles.push(new Particle(
+          sx, sy,
+          Math.random() < 0.5 ? CONE_COLOR : "#ff3333",
+          Math.cos(a) * spd, Math.sin(a) * spd,
+          0.3 + Math.random() * 0.5, 3 + Math.random() * 4, 0.15
+        ));
+      }
+      this.sound.hit();
+    }
+
+    info(text) {
+      this.showToast(text, "#86efac");
+    }
+
+    setState(newState) {
+      this.state = newState;
+      this.dom.menuScreen.classList.toggle('active', newState === STATE_MENU);
+      this.dom.countdownOverlay.classList.toggle('active', newState === STATE_COUNTDOWN);
+      this.dom.hudOverlay.classList.toggle('active', newState === STATE_PLAYING);
+      this.dom.finishScreen.classList.toggle('active', newState === STATE_FINISHED);
+
+      if (newState === STATE_COUNTDOWN) {
+        this.countdownVal = 3;
+        this.countdownTimer = 1.0;
+        this.dom.countdownNumber.innerText = "3";
+        this.sound.beep(600, 0.1);
+      } else if (newState === STATE_FINISHED) {
+        this.setupFinishModal();
+      }
+    }
+
+    setupFinishModal() {
+      const ok = this.passed;
+      const sc = this.score;
+      const mm = String(Math.floor(this.time / 60)).padStart(2, '0');
+      const ss = String(Math.floor(this.time % 60)).padStart(2, '0');
+
+      this.dom.finishModalBox.className = `modal-card ${ok ? 'pass' : 'fail'}`;
+      this.dom.finishIcon.innerText = ok ? "🏆" : "✗";
+      this.dom.finishTitle.innerText = ok ? "LULUS UJI PRAKTIK!" : "BELUM LULUS";
+      this.dom.finishScoreNumber.innerText = sc;
+      this.dom.finishScoreNumber.style.color = sc >= 80 ? '#22c55e' : (sc >= 70 ? '#f59e0b' : '#ef4444');
+      this.dom.finishScoreBar.style.width = `${sc}%`;
+      this.dom.finishScoreBar.style.background = sc >= 70 ? '#22c55e' : '#ef4444';
+      this.dom.finishTimeText.innerText = `Waktu Tempuh: ${mm}:${ss}`;
+
+      const list = this.dom.finishFaultsList;
+      list.innerHTML = "";
+      if (this.faults.length === 0) {
+        list.innerHTML = `<li style="color:#22c55e;">✓ Sempurna! Tanpa pelanggaran sama sekali.</li>`;
+      } else {
+        this.faults.forEach(f => {
+          const li = document.createElement('li');
+          li.innerText = `• -${f.pts} poin: ${f.text}`;
+          list.appendChild(li);
+        });
+      }
+    }
+
+    bindEvents() {
+      window.addEventListener('resize', () => this.handleResize());
+      window.addEventListener('orientationchange', () => setTimeout(() => this.handleResize(), 150));
+
+      // Keyboard
+      window.addEventListener('keydown', e => {
+        this.sound.init();
+        this.keys[e.key.toLowerCase()] = true;
+        this.keys[e.code] = true;
+
+        if (e.key === "Escape") {
+          this.setState(STATE_MENU);
+        } else if (this.state === STATE_PLAYING) {
+          if (e.key === 'r' || e.key === 'R') this.reset();
+          if (e.key === 'g' || e.key === 'G') {
+            this.showGuides = !this.showGuides;
+            this.dom.matrixInspector.style.display = this.showGuides ? 'block' : 'none';
+          }
+          if (e.key === 'f' || e.key === 'F') {
+            if (!this.finished) {
+              this.fault("Kaki turun", 5);
+              this.v = 0.0;
+            }
+          }
+        }
+      });
+
+      window.addEventListener('keyup', e => {
+        this.keys[e.key.toLowerCase()] = false;
+        this.keys[e.code] = false;
+      });
+
+      // UI Button Clicks
+      this.dom.btnStartGame.addEventListener('click', () => {
+        this.sound.init();
+        this.reset();
+        this.setState(STATE_COUNTDOWN);
+      });
+
+      this.dom.btnReplay.addEventListener('click', () => {
+        this.sound.init();
+        this.reset();
+        this.setState(STATE_COUNTDOWN);
+      });
+
+      this.dom.btnToMenu.addEventListener('click', () => {
+        this.sound.init();
+        this.setState(STATE_MENU);
+      });
+
+      this.dom.btnToggleMatrix.addEventListener('click', () => {
+        this.showGuides = false;
+        this.dom.matrixInspector.style.display = 'none';
+      });
+
+      this.dom.levelBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.dom.levelBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.setLevel(parseInt(btn.getAttribute('data-level')));
+        });
+      });
+
+      // On-Screen Touch Controls (Mobile Friendly with Multi-Touch Support)
+      const bindTouchBtn = (id, prop) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const onStart = e => {
+          if (e.cancelable) e.preventDefault();
+          this.sound.init();
+          this.touchState[prop] = true;
+          el.classList.add('pressed');
+        };
+        const onEnd = e => {
+          if (e.cancelable) e.preventDefault();
+          this.touchState[prop] = false;
+          el.classList.remove('pressed');
+        };
+        el.addEventListener('touchstart', onStart, { passive: false });
+        el.addEventListener('touchend', onEnd, { passive: false });
+        el.addEventListener('touchcancel', onEnd, { passive: false });
+        el.addEventListener('mousedown', onStart);
+        el.addEventListener('mouseup', onEnd);
+      };
+      bindTouchBtn('btn-gas', 'gas');
+      bindTouchBtn('btn-brake', 'brake');
+      bindTouchBtn('btn-left', 'left');
+      bindTouchBtn('btn-right', 'right');
+
+      const footBtn = document.getElementById('btn-foot');
+      if (footBtn) {
+        const onFoot = e => {
+          if (e.cancelable) e.preventDefault();
+          this.sound.init();
+          if (this.state === STATE_PLAYING && !this.finished) {
+            this.fault("Kaki turun", 5);
+            this.v = 0.0;
+          }
+        };
+        footBtn.addEventListener('touchstart', onFoot, { passive: false });
+        footBtn.addEventListener('click', onFoot);
+      }
+    }
+
+    // ==========================================================
+    // LOGIKA PERMAINAN (UPDATE LOOP)
+    // ==========================================================
+    update(dt) {
+      if (this.state === STATE_COUNTDOWN) {
+        this.countdownTimer -= dt;
+        if (this.countdownTimer <= 0) {
+          this.countdownVal -= 1;
+          if (this.countdownVal <= 0) {
+            this.setState(STATE_PLAYING);
+            return;
+          }
+          this.countdownTimer = 1.0;
+          this.dom.countdownNumber.innerText = this.countdownVal > 0 ? this.countdownVal : "GO!";
+          this.sound.beep(800, 0.1);
+        }
+        return;
+      }
+
+      if (this.state !== STATE_PLAYING) return;
+
+      const gas = this.finished ? false : (this.keys['arrowup'] || this.keys['w'] || this.touchState.gas);
+      const brake = this.finished ? true : (this.keys['arrowdown'] || this.keys['s'] || this.touchState.brake);
+      const left = this.finished ? false : (this.keys['arrowleft'] || this.keys['a'] || this.touchState.left);
+      const right = this.finished ? false : (this.keys['arrowright'] || this.keys['d'] || this.touchState.right);
+
+      // Kecepatan
+      if (gas) {
+        this.v += ACC * dt;
+      } else {
+        this.v -= (0.35 + 0.06 * this.v) * dt;
+      }
+      if (brake) {
+        this.v -= BRAKE * dt;
+      }
+      this.v = clamp(this.v, 0.0, V_MAX);
+
+      // Setir (Steering)
+      const maxSteer = (40 * Math.PI / 180) * Math.max(0.4, 1 - this.v / 14);
+      const target = (left ? -maxSteer : 0) + (right ? maxSteer : 0);
+      const rate = (140 * Math.PI / 180) * dt;
+      this.delta += clamp(target - this.delta, -rate, rate);
+      this.delta = clamp(this.delta, -maxSteer, maxSteer);
+
+      // Kinematika Sepeda Motor
+      this.th += (this.v / WHEELBASE) * Math.tan(this.delta) * dt;
+      this.x += this.v * Math.cos(this.th) * dt;
+      this.y += this.v * Math.sin(this.th) * dt;
+
+      if (!this.started && this.v > 0.05) this.started = true;
+      if (this.started && !this.finished) this.time += dt;
+
+      // Matriks Model Motor: M = T(x, y) . R(th)
+      this.model = matMul(matTranslate(this.x, this.y), matRotate(this.th));
+      const inv = inverseAffine(this.model);
+
+      this.s = this.track.progress(this.x, this.y, this.s);
+      const hl = MOTOR_L / 2, hw = MOTOR_W / 2;
+      const front = applyMat(this.model, hl, 0);
+
+      // Tabrakan Patok (Cones)
+      for (const c of this.track.cones) {
+        if (c.hit) continue;
+        const dist2 = (c.x - this.x) ** 2 + (c.y - this.y) ** 2;
+        if (dist2 > 4.0) continue;
+        const [lx, ly] = applyMat(inv, c.x, c.y);
+        const dx = Math.max(Math.abs(lx) - hl, 0);
+        const dy = Math.max(Math.abs(ly) - hw, 0);
+        if (dx * dx + dy * dy <= CONE_R ** 2) {
+          c.hit = true;
+          if (!this.finished) this.fault("Menyenggol patok", 5);
+        }
+      }
+
+      // Keluar Jalur (Pengurangan Poin, Tanpa Restart)
+      this.laneCd -= dt;
+      const cornerPts = [
+        [hl, -hw], [hl, hw], [-hl, -hw], [-hl, hw],
+        [hl, 0], [-hl, 0], [0, -hw], [0, hw]
+      ];
+      const isOut = cornerPts.some(([px, py]) => !this.track.inside(...applyMat(this.model, px, py)));
+      if (isOut && !this.wasOut && this.laneCd <= 0 && !this.finished) {
+        this.fault("Keluar jalur / menginjak garis", 5);
+        this.laneCd = 0.8;
+      }
+      this.wasOut = isOut;
+
+      // Materi 1: Pengereman
+      if (!this.remOn && !this.brakeDone && this.s < 20 && front[0] >= REM_X) {
+        this.remOn = true;
+      }
+      if (this.remOn && !this.brakeDone) {
+        if (this.v < 0.05) {
+          this.brakeDone = true;
+          const fx = front[0];
+          if (fx >= BOX_X0 && fx <= BOX_X1) {
+            this.info("Pengereman BERHASIL: berhenti di kotak kuning");
+          } else if (fx < BOX_X0) {
+            this.fault("Berhenti sebelum kotak kuning", 10);
+          } else {
+            this.fault("Berhenti melewati kotak kuning", 10);
+          }
+        } else if (front[0] > 20.3) {
+          this.brakeDone = true;
+          this.fault("Pengereman gagal: terlewat dari kotak", 15);
+        }
+      }
+
+      // Materi 4: Rem Menghindar
+      const [fx0, fy0] = this.track.fork;
+      if (!this.revealed && this.s >= this.track.reveal_s) {
+        this.revealed = true;
+      }
+      if (this.branch === null && front[1] < fy0 - 2.0 && this.s > this.track.total - 6) {
+        this.branch = this.x < fx0 ? "L" : "R";
+        if (this.branch === this.blocked) {
+          this.wrongLane = true;
+          this.fault("Masuk lajur yang tertutup", 20);
+        }
+      }
+      if (this.branch && !this.finished && this.v < 0.05 && front[1] < fy0 - 5.2) {
+        this.finished = true;
+        if (front[1] >= this.track.stop_y0 - 0.1 && front[1] <= this.track.stop_y1 + 0.1) {
+          this.info("Berhenti tepat di kotak STOP");
+        } else {
+          this.fault("Berhenti di luar kotak STOP", 10);
+        }
+        this.passed = this.score >= 70 && !this.wrongLane;
+        this.recordAttempt();
+        this.setState(STATE_FINISHED);
+        if (this.passed) this.sound.fanfare();
+      }
+
+      // Update Partikel
+      this.particles = this.particles.filter(p => p.update(dt));
+
+      // Update DOM HUD Realtime
+      this.updateHUDDOM();
+    }
+
+    updateHUDDOM() {
+      const { title } = this.track.sectionAt(this.s);
+      const sc = this.score;
+      const mm = String(Math.floor(this.time / 60)).padStart(2, '0');
+      const ss = String(Math.floor(this.time % 60)).padStart(2, '0');
+      const pct = clamp(this.s / this.track.total, 0, 1);
+
+      this.dom.hudProgressFill.style.width = `${pct * 100}%`;
+      this.dom.hudProgressText.innerText = `Lintasan: ${(pct * 100).toFixed(0)}%`;
+      this.dom.hudStageName.innerText = title;
+      this.dom.hudScoreVal.innerText = sc;
+      this.dom.hudScoreVal.className = `hud-value ${sc >= 80 ? 'score-good' : (sc >= 70 ? 'score-warn' : 'score-bad')}`;
+      this.dom.hudTimerVal.innerText = `⏱ ${mm}:${ss}`;
+      this.dom.hudSpeedVal.innerText = `${(this.v * 3.6).toFixed(0)} km/j`;
+
+      // Banner Situasional
+      const banner = this.dom.hudAlertBanner;
+      if (this.remOn && !this.brakeDone) {
+        banner.style.display = 'block';
+        banner.innerText = "REM! Berhenti di dalam kotak kuning";
+      } else if (this.revealed && this.branch === null && !this.finished) {
+        banner.style.display = 'block';
+        banner.innerText = `Lajur ${this.blocked === 'L' ? 'KIRI' : 'KANAN'} TERTUTUP! → Belok ${this.blocked === 'L' ? 'KANAN' : 'KIRI'}`;
+      } else {
+        banner.style.display = 'none';
+      }
+
+      // Matrix Debug Text
+      if (this.showGuides && this.dom.matrixContent) {
+        const c_th = Math.cos(this.th), s_th = Math.sin(this.th);
+        this.dom.matrixContent.innerHTML = `
+M = T(${this.x.toFixed(1)}, ${this.y.toFixed(1)}) · R(${((this.th * 180 / Math.PI) % 360).toFixed(0)}°)<br>
+[ ${c_th.toFixed(2).padStart(5)}  ${(-s_th).toFixed(2).padStart(5)}  ${this.x.toFixed(1).padStart(5)} ]<br>
+[ ${s_th.toFixed(2).padStart(5)}  ${c_th.toFixed(2).padStart(5)}  ${this.y.toFixed(1).padStart(5)} ]<br>
+Setir: ${(this.delta * 180 / Math.PI).toFixed(0)}° | Dilasi: ${this.k.toFixed(1)} px/m
+        `;
+      }
+    }
+
+    // ==========================================================
+    // KAMERA & RENDERING DUNIA
+    // ==========================================================
+    updateCamera() {
+      let tx = this.x, ty = this.y, tk = this.targetK;
+      if (this.overview) {
+        const [x0, y0, x1, y1] = this.track.bbox;
+        tx = (x0 + x1) / 2;
+        ty = (y0 + y1) / 2;
+        tk = Math.min((this.width - 40) / (x1 - x0), (this.height - 40) / (y1 - y0));
+      }
+      this.cam[0] += (tx - this.cam[0]) * 0.12;
+      this.cam[1] += (ty - this.cam[1]) * 0.12;
+      this.k += (tk - this.k) * 0.12;
+
+      // Matriks Kamera: V = T(W/2, H/2) . S(k) . T(-camX, -camY)
+      this.V = matMul(
+        matTranslate(this.width / 2, this.height / 2),
+        matMul(matScale(this.k), matTranslate(-this.cam[0], -this.cam[1]))
+      );
+    }
+
+    toScreen(x, y) {
+      return applyMat(this.V, x, y);
+    }
+
+    render() {
+      const ctx = this.ctx;
+      this.updateCamera();
+
+      // 1. Lapangan Luar / Rumput Sirkuit Nyata
+      ctx.fillStyle = this.groundPattern || "#152018";
+      ctx.fillRect(0, 0, this.width, this.height);
+
+      // 2. Jalur Aspal & Marka Termoplastik
+      this.drawRoad();
+      this.drawMarkings();
+
+      // 3. Rambu Lalu Lintas Dishub (Batas 30 km/jam)
+      this.drawRoadSigns();
+
+      // 4. Traffic Cones Realistis (Alas Karet & Pita Reflektif)
+      this.drawCones();
+
+      // 5. Sepeda Motor Realistis (Sorot Lampu Depan & Lampu Rem Dinamis)
+      this.drawMotor();
+
+      // 6. Efek Partikel
+      this.particles.forEach(p => p.draw(ctx));
+    }
+
+    drawRoad() {
+      const ctx = this.ctx;
+      const tr = this.track;
+      const k = this.k;
+
+      // --- LAYER 1: Kastin Bahu Jalan (Concrete Kerb / Shoulder) ---
+      const shoulderW = Math.max(2, (tr.w + 0.38) * k);
+      ctx.strokeStyle = "#384152"; // Kastin beton abu-abu tua
+      ctx.lineWidth = shoulderW;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      tr.polys.forEach(poly => {
+        ctx.beginPath();
+        poly.pts.forEach(([px, py], i) => {
+          const [sx, sy] = this.toScreen(px, py);
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+        ctx.stroke();
+      });
+
+      // --- LAYER 2: Permukaan Aspal Nyata (Textured Aggregate Asphalt) ---
+      const roadW = Math.max(2, tr.w * k);
+      ctx.strokeStyle = this.asphaltPattern || "#22252c";
+      ctx.lineWidth = roadW;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      tr.polys.forEach(poly => {
+        ctx.beginPath();
+        poly.pts.forEach(([px, py], i) => {
+          const [sx, sy] = this.toScreen(px, py);
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+        ctx.stroke();
+      });
+
+      // --- LAYER 3: Marka Putih Tepi Solid (Thermoplastic Road Border) ---
+      const edgeLw = Math.max(1.5, 0.085 * k);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = edgeLw;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      const drawEdgeLine = (poly, side) => {
+        const offset = (tr.w / 2 - 0.075) * side;
+        ctx.beginPath();
+        let s = 0;
+        let isFirst = true;
+        while (s <= poly.length) {
+          const [[px, py], [tx, ty]] = poly.pointAt(s);
+          const nx = -ty * offset;
+          const ny = tx * offset;
+          const [sx, sy] = this.toScreen(px + nx, py + ny);
+          if (isFirst) { ctx.moveTo(sx, sy); isFirst = false; }
+          else { ctx.lineTo(sx, sy); }
+          s += 0.8;
+        }
+        ctx.stroke();
+      };
+
+      tr.polys.forEach(poly => {
+        drawEdgeLine(poly, -1);
+        drawEdgeLine(poly, 1);
+      });
+
+      // --- LAYER 4: Marka Putus-putus Sumbu Jalan (White Center Dashes) ---
+      ctx.strokeStyle = "#f8fafc";
+      ctx.lineWidth = Math.max(1.5, 0.075 * k);
+      ctx.lineCap = 'butt';
+      ctx.beginPath();
+      tr.dashes.forEach(([p1, p2]) => {
+        const [s1x, s1y] = this.toScreen(...p1);
+        const [s2x, s2y] = this.toScreen(...p2);
+        ctx.moveTo(s1x, s1y);
+        ctx.lineTo(s2x, s2y);
+      });
+      ctx.stroke();
+
+      // --- LAYER 5: Panah Arah Marka Jalan Putih ---
+      ctx.fillStyle = "#ffffff";
+      tr.arrows.forEach(([tip, l, r]) => {
+        const [tx, ty] = this.toScreen(...tip);
+        const [lx, ly] = this.toScreen(...l);
+        const [rx, ry] = this.toScreen(...r);
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(lx, ly);
+        ctx.lineTo(rx, ry);
+        ctx.closePath();
+        ctx.fill();
+      });
+    }
+
+    drawMarkings() {
+      const ctx = this.ctx;
+      const tr = this.track;
+      const k = this.k;
+      const hw = tr.w / 2;
+      const lw = Math.max(2, 0.11 * k);
+      ctx.lineWidth = lw;
+
+      // START Line: Garis Zebra / Kotak Catur Start
+      const [s0x, s0y] = this.toScreen(0, -hw);
+      const [s1x, s1y] = this.toScreen(0, hw);
+      ctx.strokeStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.moveTo(s0x, s0y); ctx.lineTo(s1x, s1y);
+      ctx.stroke();
+      this.drawWorldText("START", 0.9, 0, 0.44, "#ffffff", 90);
+
+      // Materi 1: Garis REM
+      const [r0x, r0y] = this.toScreen(REM_X, -hw);
+      const [r1x, r1y] = this.toScreen(REM_X, hw);
+      ctx.strokeStyle = "#fbbf24";
+      ctx.beginPath();
+      ctx.moveTo(r0x, r0y); ctx.lineTo(r1x, r1y);
+      ctx.stroke();
+      this.drawWorldText("REM", REM_X + 1.1, 0, 0.55, "#fbbf24");
+      this.drawWorldText("STOP", BOX_X0 - 1.1, 0, 0.44, "#ffffff");
+
+      // Materi 1: Yellow Box SATPAS (Kotak Kuning Pengereman)
+      const box = [
+        [BOX_X0, -hw + 0.10], [BOX_X1, -hw + 0.10],
+        [BOX_X1, hw - 0.10], [BOX_X0, hw - 0.10]
+      ];
+      // Tint dasar kuning aspal
+      ctx.fillStyle = "rgba(245, 158, 11, 0.18)";
+      ctx.beginPath();
+      box.forEach(([bx, by], i) => {
+        const [sx, sy] = this.toScreen(bx, by);
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      });
+      ctx.closePath();
+      ctx.fill();
+
+      // Border Yellow Box tebal
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = Math.max(2, 0.12 * k);
+      ctx.stroke();
+
+      // Garis Arsir Silang Yellow Box
+      const [b0x, b0y] = this.toScreen(...box[0]);
+      const [b2x, b2y] = this.toScreen(...box[2]);
+      const [b1x, b1y] = this.toScreen(...box[1]);
+      const [b3x, b3y] = this.toScreen(...box[3]);
+      ctx.lineWidth = Math.max(1.5, 0.08 * k);
+      ctx.beginPath();
+      ctx.moveTo(b0x, b0y); ctx.lineTo(b2x, b2y);
+      ctx.moveTo(b1x, b1y); ctx.lineTo(b3x, b3y);
+      ctx.stroke();
+
+      // Materi 4: Garis REM & Kotak STOP Cabang
+      const [fx, fy] = tr.fork;
+      const [rm0x, rm0y] = this.toScreen(fx - hw, tr.rem_stem_y);
+      const [rm1x, rm1y] = this.toScreen(fx + hw, tr.rem_stem_y);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.moveTo(rm0x, rm0y); ctx.lineTo(rm1x, rm1y);
+      ctx.stroke();
+      this.drawWorldText("REM", fx, tr.rem_stem_y - 1.1, 0.55, "#fbbf24", 90);
+
+      [ { sgn: -1, key: "L" }, { sgn: 1, key: "R" } ].forEach(({ sgn, key }) => {
+        const bx = fx + sgn * tr.branchOff;
+        const bw = hw - 0.1;
+        const rect = [
+          [bx - bw, tr.stop_y0], [bx + bw, tr.stop_y0],
+          [bx + bw, tr.stop_y1], [bx - bw, tr.stop_y1]
+        ];
+        let color = "#ffffff";
+        let fillCol = "rgba(255, 255, 255, 0.12)";
+        if (this.revealed) {
+          if (key === this.blocked) {
+            color = "#ef4444";
+            fillCol = "rgba(239, 68, 68, 0.25)";
+          } else {
+            color = "#22c55e";
+            fillCol = "rgba(34, 197, 94, 0.25)";
+          }
+        }
+
+        ctx.fillStyle = fillCol;
+        ctx.beginPath();
+        rect.forEach(([rx, ry], i) => {
+          const [sx, sy] = this.toScreen(rx, ry);
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw;
+        ctx.stroke();
+        this.drawWorldText("STOP", bx, (tr.stop_y0 + tr.stop_y1) / 2, 0.44, color, 90);
+
+        // Jika jalur ditutup: silang merah besar tanda dilarang
+        if (this.revealed && key === this.blocked) {
+          const [c0x, c0y] = this.toScreen(...rect[0]);
+          const [c2x, c2y] = this.toScreen(...rect[2]);
+          const [c1x, c1y] = this.toScreen(...rect[1]);
+          const [c3x, c3y] = this.toScreen(...rect[3]);
+          ctx.strokeStyle = "#ef4444";
+          ctx.lineWidth = Math.max(3, 0.15 * k);
+          ctx.beginPath();
+          ctx.moveTo(c0x, c0y); ctx.lineTo(c2x, c2y);
+          ctx.moveTo(c1x, c1y); ctx.lineTo(c3x, c3y);
+          ctx.stroke();
+        }
+      });
+    }
+
+    drawRoadSigns() {
+      const ctx = this.ctx;
+      const k = this.k;
+      const tr = this.track;
+      const hw = tr.w / 2;
+      const [fx, fy] = tr.fork;
+
+      // Posisi rambu 30 km/jam standar RI
+      const signs = [
+        [3.0, -hw - 1.1],
+        [fx + 2.8, fy + 10.0]
+      ];
+
+      signs.forEach(([wx, wy]) => {
+        const [sx, sy] = this.toScreen(wx, wy);
+        if (sx < -40 || sx > this.width + 40 || sy < -40 || sy > this.height + 40) return;
+        const signR = Math.max(10, 0.42 * k);
+
+        // Bayangan tiang & rambu
+        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+        ctx.beginPath();
+        ctx.ellipse(sx + signR * 0.4, sy + signR * 0.5, signR * 0.9, signR * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Lingkaran Merah (Bingkai Luar Standar Dishub)
+        ctx.fillStyle = "#dc2626";
+        ctx.beginPath();
+        ctx.arc(sx, sy, signR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Piringan Putih Dalam
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(sx, sy, signR * 0.76, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Angka "30" Hitam
+        ctx.fillStyle = "#0f172a";
+        ctx.font = `bold ${Math.floor(signR * 0.9)}px 'Arial Black', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText("30", sx, sy + 1);
+      });
+    }
+
+    drawWorldText(text, wx, wy, h_m, color, angleDeg = 0) {
+      const size = Math.floor(h_m * this.k);
+      if (size < 7) return;
+      const [sx, sy] = this.toScreen(wx, wy);
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.translate(sx, sy);
+      if (angleDeg) ctx.rotate((angleDeg * Math.PI) / 180);
+      ctx.font = `bold ${size}px 'Arial Black', Consolas, monospace`;
+      const tw = ctx.measureText(text).width;
+      ctx.fillStyle = "#22252c";
+      ctx.fillRect(-(tw / 2 + size * 0.35), -(size * 0.75), tw + size * 0.7, size * 1.5);
+      ctx.fillStyle = color;
+     
+      // Shadow teks cat marka
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    }
+
+    drawCones() {
+      const ctx = this.ctx;
+      const k = this.k;
+      const baseSize = Math.max(6, 0.38 * k); // Ukuran tatakan persegi karet (0.38m)
+      const coneR = Math.max(4, 0.18 * k);   // Radius bodi kerucut
+
+      for (const c of this.track.cones) {
+        const [sx, sy] = this.toScreen(c.x, c.y);
+        if (sx < -30 || sx > this.width + 30 || sy < -30 || sy > this.height + 30) continue;
+
+        ctx.save();
+        ctx.translate(sx, sy);
+
+        if (c.hit) {
+          // Cone Tergeser / Jatuh Miring
+          ctx.rotate(0.65);
+          ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+          ctx.fillRect(-baseSize / 2 + 4, -baseSize / 2 + 4, baseSize, baseSize * 0.7);
+
+          // Tatakan karet hitam
+          ctx.fillStyle = "#1e293b";
+          ctx.fillRect(-baseSize / 2, -baseSize / 2, baseSize, baseSize);
+
+          // Bodi kerucut merah lecet
+          ctx.fillStyle = "#ef4444";
+          ctx.beginPath();
+          ctx.arc(2, 0, coneR * 1.1, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = Math.max(1.5, coneR / 3);
+          ctx.stroke();
+        } else {
+          // --- 1. Bayangan Jatuh Realistis (Drop Shadow) ---
+          ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+          ctx.beginPath();
+          ctx.ellipse(3, 4, coneR * 1.3, coneR * 0.7, 0.3, 0, Math.PI * 2);
+          ctx.fill();
+
+          // --- 2. Alas Karet Persegi Hitam (Square Rubber Base) ---
+          ctx.fillStyle = "#18181b";
+          ctx.fillRect(-baseSize / 2, -baseSize / 2, baseSize, baseSize);
+          ctx.strokeStyle = "#27272a";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(-baseSize / 2, -baseSize / 2, baseSize, baseSize);
+
+          // --- 3. Bodi Kerucut Oranye Fluorescent (Gradient 3D) ---
+          const grad = ctx.createRadialGradient(-coneR * 0.3, -coneR * 0.3, 1, 0, 0, coneR);
+          grad.addColorStop(0, "#ff8c00");
+          grad.addColorStop(0.7, "#ea580c");
+          grad.addColorStop(1, "#c2410c");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(0, 0, coneR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // --- 4. Dua Pita Reflektif Putih (Dual Retroreflective Stripes) ---
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+          ctx.lineWidth = Math.max(1.5, coneR * 0.28);
+          ctx.beginPath();
+          ctx.arc(0, 0, coneR * 0.65, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.lineWidth = Math.max(1, coneR * 0.16);
+          ctx.beginPath();
+          ctx.arc(0, 0, coneR * 0.32, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Lubang atas kerucut
+          ctx.fillStyle = "#09090b";
+          ctx.beginPath();
+          ctx.arc(0, 0, Math.max(1, coneR * 0.15), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+    }
+
+    drawMotor() {
+      const ctx = this.ctx;
+      const MV = matMul(this.V, this.model);
+      const MF = matMul(MV, matMul(matTranslate(0.65, 0), matRotate(this.delta)));
+      const isBraking = this.keys['arrowdown'] || this.keys['s'] || this.touchState.brake;
+
+      const drawPolyMat = (M, pts, fill, stroke = null, lw = 1) => {
+        ctx.beginPath();
+        pts.forEach(([px, py], i) => {
+          const [sx, sy] = applyMat(M, px, py);
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+        ctx.closePath();
+        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+      };
+
+      // --- 1. Sorot Lampu Depan (Headlight Beam di Aspal) ---
+      const [fx, fy] = applyMat(MF, 0.7, 0);
+      const beamL = 5.0; // Panjang sorotan lampu 5 meter
+      const beamW = 1.6; // Lebar sudut sorotan
+      const [b1x, b1y] = applyMat(MF, beamL, -beamW / 2);
+      const [b2x, b2y] = applyMat(MF, beamL, beamW / 2);
+
+      const lightGrad = ctx.createRadialGradient(fx, fy, 5, fx, fy, beamL * this.k);
+      lightGrad.addColorStop(0, "rgba(254, 240, 138, 0.35)");
+      lightGrad.addColorStop(0.6, "rgba(253, 224, 71, 0.12)");
+      lightGrad.addColorStop(1, "rgba(253, 224, 71, 0)");
+
+      ctx.fillStyle = lightGrad;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(b1x, b1y);
+      ctx.lineTo(b2x, b2y);
+      ctx.closePath();
+      ctx.fill();
+
+      // --- 2. Bayangan Lembut Motor (Ambient Occlusion Shadow) ---
+      const MV_shadow = matMul(matTranslate(4, 5), MV);
+      drawPolyMat(MV_shadow, rectPts(0, 0, 1.9, 0.45), "rgba(0, 0, 0, 0.48)");
+
+      // --- 3. Roda Belakang & Depan (Ban Bergerigi + Velg Alloy) ---
+      drawPolyMat(MV, rectPts(-0.65, 0, 0.72, 0.16), "#18181b"); // Ban Belakang
+      drawPolyMat(MV, rectPts(-0.65, 0, 0.45, 0.08), "#64748b"); // Velg Belakang
+
+      drawPolyMat(MF, rectPts(0, 0, 0.72, 0.16), "#18181b");     // Ban Depan
+      drawPolyMat(MF, rectPts(0, 0, 0.45, 0.08), "#64748b");     // Velg Depan
+
+      // --- 4. Knalpot Chrome Samping Kanan ---
+      drawPolyMat(MV, rectPts(-0.45, 0.16, 0.65, 0.08), "#94a3b8", "#475569", 1);
+
+      // --- 5. Bodi Motor Merah Metalik Aerodinamis ---
+      drawPolyMat(MV, rectPts(0, 0, 1.75, 0.28), "#dc2626");
+      drawPolyMat(MV, rectPts(0.25, 0, 0.85, 0.20), "#f87171"); // Tangki & Highlight
+      drawPolyMat(MV, rectPts(-0.10, 0, 0.50, 0.24), "#1e293b"); // Jok Motor Hitam
+
+      // --- 6. Lampu Belakang (Dynamic Brake Light) ---
+      const [tx, ty] = applyMat(MV, -0.85, 0);
+      const brakeR = Math.max(3, 0.10 * this.k);
+      if (isBraking) {
+        // Pendaran Merah Menyala Terang saat Rem
+        ctx.fillStyle = "rgba(239, 68, 68, 0.65)";
+        ctx.beginPath();
+        ctx.arc(tx, ty, brakeR * 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(tx, ty, brakeR * 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.arc(tx, ty, brakeR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // --- 7. Pengendara (Jaket, Bahu & Lengan) ---
+      drawPolyMat(MV, rectPts(-0.2, 0, 0.32, 0.58), "#1e40af"); // Jaket Biru Rider
+
+      // Helm Pengendara
+      const [hx, hy] = applyMat(MV, -0.15, 0);
+      const helmR = Math.max(5, 0.24 * this.k);
+      ctx.fillStyle = "#f1f5f9"; // Helm Putih
+      ctx.beginPath();
+      ctx.arc(hx, hy, helmR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Kaca Visor Helm (Hitam Kebiruan)
+      ctx.strokeStyle = "#0284c7";
+      ctx.lineWidth = Math.max(1.5, helmR * 0.35);
+      ctx.beginPath();
+      ctx.arc(hx, hy, helmR - 2, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.stroke();
+
+      // --- 8. Stang Motor & Kaca Spion Kiri-Kanan ---
+      const [st1x, st1y] = applyMat(MF, 0, -MOTOR_W / 2);
+      const [st2x, st2y] = applyMat(MF, 0, MOTOR_W / 2);
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = Math.max(2, 0.08 * this.k);
+      ctx.beginPath();
+      ctx.moveTo(st1x, st1y); ctx.lineTo(st2x, st2y);
+      ctx.stroke();
+
+      // Kaca Spion Kiri & Kanan (Oval Chrome)
+      const mirrorR = Math.max(2, 0.07 * this.k);
+      [st1x, st2x].forEach((sx, i) => {
+        const sy = i === 0 ? st1y : st2y;
+        ctx.fillStyle = "#0f172a";
+        ctx.beginPath();
+        ctx.arc(sx, sy, mirrorR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#38bdf8";
+        ctx.beginPath();
+        ctx.arc(sx, sy, mirrorR * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // --- 9. Garis Bantu & Vektor Matriks jika Tombol 'G' aktif ---
+      if (this.showGuides) {
+        drawPolyMat(MV, rectPts(0, 0, MOTOR_L, MOTOR_W), null, MAGENTA, 2);
+        const [ox, oy] = applyMat(MV, 0, 0);
+        const [xAx, xAy] = applyMat(MV, 1.6, 0);
+        const [yAx, yAy] = applyMat(MV, 0, 1.6);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = GREEN;
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(xAx, xAy); ctx.stroke();
+        ctx.strokeStyle = BLUE;
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(yAx, yAy); ctx.stroke();
+
+        if (this.v > 0.1) {
+          const [vx_s, vy_s] = this.toScreen(this.x + Math.cos(this.th) * this.v * 0.5, this.y + Math.sin(this.th) * this.v * 0.5);
+          ctx.strokeStyle = YELLOW;
+          ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(vx_s, vy_s); ctx.stroke();
+        }
+      }
+    }
+
+    loop(timestamp) {
+      if (!this.lastTime) this.lastTime = timestamp;
+      let dt = (timestamp - this.lastTime) / 1000.0;
+      this.lastTime = timestamp;
+      if (dt > 0.1) dt = 1 / 60;
+
+      this.update(dt);
+      this.render();
+
+      requestAnimationFrame(ts => this.loop(ts));
+    }
+
+    start() {
+      requestAnimationFrame(ts => this.loop(ts));
+    }
+  }
+
+  // Jalankan Game
+  const canvas = document.getElementById('gameCanvas');
+  const game = new Game(canvas);
+  game.start();
+})();
+</script>
+</body>
+</html>
