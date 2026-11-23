@@ -809,7 +809,33 @@
       gap: 8px;
     }
     .btn-secondary:active { background: rgba(51, 65, 85, 0.9); }
+
+    .btn-secondary:active { background: rgba(51, 65, 85, 0.9); }
+
+    /* Penyesuaian tata letak khusus layar HP agar HUD tidak tertumpuk tombol kontrol */
+    @media (max-width: 768px) {
+      .hud-top-bar {
+        position: fixed !important;
+        top: 38px !important;
+        bottom: auto !important;
+        left: 8px !important;
+        right: 8px !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        z-index: 40;
+      }
+      .hud-top-bar .hud-pill {
+        padding: 4px 10px;
+        font-size: 11px;
+      }
+      .touch-controls {
+        bottom: 14px !important;
+        z-index: 50;
+      }
+    }
   </style>
+  
 </head>
 <body>
 
@@ -1841,7 +1867,7 @@
           this.setState(STATE_MENU);
         });
       }
-      
+
       this.dom.levelBtns.forEach(btn => {
         btn.addEventListener('click', () => {
           this.dom.levelBtns.forEach(b => b.classList.remove('active'));
