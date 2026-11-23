@@ -830,8 +830,12 @@
         font-size: 11px;
       }
       .touch-controls {
+        display: none !important;
         bottom: 14px !important;
         z-index: 50;
+      }
+      .touch-controls.is-playing {
+        display: flex !important;
       }
     }
   </style>
@@ -1758,6 +1762,14 @@
       this.dom.countdownOverlay.classList.toggle('active', newState === STATE_COUNTDOWN);
       this.dom.hudOverlay.classList.toggle('active', newState === STATE_PLAYING);
       this.dom.finishScreen.classList.toggle('active', newState === STATE_FINISHED);
+const touchEl = document.querySelector('.touch-controls');
+      if (touchEl) {
+        if (newState === STATE_PLAYING) {
+          touchEl.classList.add('is-playing');
+        } else {
+          touchEl.classList.remove('is-playing');
+        }
+      }
 
       if (newState === STATE_COUNTDOWN) {
         this.countdownVal = 3;
