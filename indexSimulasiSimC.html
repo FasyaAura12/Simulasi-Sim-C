@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Simulasi Uji Praktik SIM C - Transformasi Geometri (Web Edition)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b0f1d;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      display: block;
+      background: #0f1423; 
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+
+    /* On-screen touch controls for Mobile / Tablet */
+    #touch-controls {
+      display: none;
+      position: absolute;
+      bottom: 12px;
+      left: 0;
+      right: 0;
+      padding: 0 16px;
+      pointer-events: none;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 50;
+    }
+    .touch-group {
+      display: flex;
+      gap: 12px;
+      pointer-events: auto;
+    }
+    .touch-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(20, 30, 55, 0.75);
+      border: 2px solid rgba(80, 140, 240, 0.6);
+      color: #fff;
+      font-weight: bold;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      touch-action: manipulation;
+      transition: transform 0.1s, background 0.1s;
+    }
+    .touch-btn:active {
+      transform: scale(0.92);
+      background: rgba(40, 70, 140, 0.9);
+      border-color: #60b0ff;
+    }
+    .btn-gas { background: rgba(30, 140, 60, 0.75); border-color: #40d070; }
+    .btn-gas:active { background: rgba(40, 180, 80, 0.95); }
+    .btn-brake { background: rgba(180, 40, 40, 0.75); border-color: #ff5050; }
+    .btn-brake:active { background: rgba(220, 50, 50, 0.95); }
+    .btn-foot { width: 50px; height: 50px; font-size: 13px; background: rgba(120, 80, 30, 0.75); border-color: #ffa030; }
+
+    @media (pointer: coarse) {
+      #touch-controls {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="gameCanvas" width="1100" height="700"></canvas>
+  
+  <!-- Touch Controls -->
+  <div id="touch-controls">
+    <div class="touch-group">
+      <button class="touch-btn" id="btn-left">◀</button>
+      <button class="touch-btn" id="btn-right">▶</button>
+    </div>
+    <div class="touch-group">
+      <button class="touch-btn btn-foot" id="btn-foot">KAKI</button>
+      <button class="touch-btn btn-brake" id="btn-brake">REM</button>
+      <button class="touch-btn btn-gas" id="btn-gas">GAS</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ----------------------------------------------------------- Konfigurasi Game
+  const CANVAS_W = 1100;
+  const CANVAS_H = 700;
+
+  const LANE_W = 1.8;
+  const MOTOR_L = 2.0;
+  const MOTOR_W = 0.75;
+  const WHEELBASE = 1.3;
+  const V_MAX = 11.0;     // ~40 km/jam
+  const ACC = 2.4;
+  const BRAKE = 6.0;
+  const CONE_R = 0.13;
+
+  const REM_X = 9.0;
+  const BOX_X0 = 15.0;
+  const BOX_X1 = 19.0;
+
+  const LEVELS = {
+    1: { name: "Mudah", scale: 1.15, color: "#32aa64" },
+    2: { name: "Standar", scale: 1.00, color: "#3278c8" },
+    3: { name: "Sulit", scale: 0.85, color: "#c83c3c" }
+  };
+
+  // State
+  const STATE_MENU = "menu";
+  const STATE_COUNTDOWN = "countdown";
+  const STATE_PLAYING = "playing";
+  const STATE_FINISHED = "finished";
+
+  // Warna
+  const BG_COLOR = "#0f1423";
+  const ROAD_COLOR = "#232837";
+  const EDGE_COLOR = "#dce6ff";
+  const WHITE = "#f0f0ff";
+  const YELLOW = "#ffd728";
+  const CONE_COLOR = "#ff8214";
+  const CONE_HIT = "#e74c3c";
+  const CAR_COLOR = "#dc3232";
+  const WHEEL_COLOR = "#14141e";
+  const RIDER_COLOR = "#3282dc";
+  const GREEN = "#2ecc71";
+  const BLUE = "#3498db";
+  const RED = "#e74c3c";
+  const CYAN = "#00dcdc";
+  const MAGENTA = "#ff3cc8";
+
+  // ------------------------------------------------- Matriks Homogen 3x3
+  function matMul(A, B) {
+    const C = [[0,0,0],[0,0,0],[0,0,0]];
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        C[i][j] = A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j];
+      }
+    }
+    return C;
+  }
+
+  function matTranslate(tx, ty) {
+    return [[1, 0, tx], [0, 1, ty], [0, 0, 1]];
+  }
+
+  function matRotate(a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [[c, -s, 0], [s, c, 0], [0, 0, 1]];
+  }
+
+  function matScale(k) {
+    return [[k, 0, 0], [0, k, 0], [0, 0, 1]];
+  }
+
+  function applyMat(M, x, y) {
+    return [
+      M[0][0] * x + M[0][1] * y + M[0][2],
+      M[1][0] * x + M[1][1] * y + M[1][2]
+    ];
+  }
+
+  function inverseAffine(M) {
+    const a = M[0][0], b = M[0][1], tx = M[0][2];
+    const c = M[1][0], d = M[1][1], ty = M[1][2];
+    const det = a * d - b * c;
+    const ia = d / det, ib = -b / det, ic = -c / det, id = a / det;
+    return [
+      [ia, ib, -(ia * tx + ib * ty)],
+      [ic, id, -(ic * tx + id * ty)],
+      [0, 0, 1]
+    ];
+  }
+
+  function rectPts(cx, cy, length, width) {
+    const hl = length / 2, hw = width / 2;
+    return [
+      [cx - hl, cy - hw],
+      [cx + hl, cy - hw],
+      [cx + hl, cy + hw],
+      [cx - hl, cy + hw]
+    ];
+  }
+
+  function clamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+
+  // ------------------------------------------------- Sound Synth (Web Audio API)
+  class SoundPlayer {
+    constructor() {
+      this.ctx = null;
+    }
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+    hit() {
+      if (!this.ctx) return;
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      } catch (e) {}
+    }
+    fanfare() {
+      if (!this.ctx) return;
+      try {
+        const notes = [523, 659, 784, 1047];
+        const step = 0.12;
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * step);
+          gain.gain.setValueAtTime(0.28, this.ctx.currentTime + i * step);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + (i + 1) * step);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + i * step);
+          osc.stop(this.ctx.currentTime + (i + 1) * step);
+        });
+      } catch (e) {}
+    }
+    beep(freq = 600, dur = 0.08) {
+      if (!this.ctx) return;
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + dur);
+      } catch (e) {}
+    }
+  }
+
+  // ------------------------------------------------- Lintasan & Geometri
+  class PathBuilder {
+    constructor(x, y, headingDeg) {
+      this.x = x;
+      this.y = y;
+      this.h = (headingDeg * Math.PI) / 180;
+      this.pts = [[x, y]];
+      this.length = 0.0;
+    }
+    straight(L) {
+      this.x += L * Math.cos(this.h);
+      this.y += L * Math.sin(this.h);
+      this.pts.push([this.x, this.y]);
+      this.length += L;
+    }
+    arc(radius, deg, sign, step = 5) {
+      const n = Math.max(1, Math.ceil(deg / step));
+      const dth = ((deg * Math.PI) / 180) / n;
+      const a = sign * dth;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      for (let i = 0; i < n; i++) {
+        const cx = this.x - sign * radius * Math.sin(this.h);
+        const cy = this.y + sign * radius * Math.cos(this.h);
+        const vx = this.x - cx, vy = this.y - cy;
+        this.x = cx + vx * ca - vy * sa;
+        this.y = cy + vx * sa + vy * ca;
+        this.h += a;
+        this.pts.push([this.x, this.y]);
+        this.length += radius * dth;
+      }
+    }
+  }
+
+  class Poly {
+    constructor(pts) {
+      this.pts = pts;
+      this.cum = [0.0];
+      for (let i = 1; i < pts.length; i++) {
+        const dx = pts[i][0] - pts[i - 1][0];
+        const dy = pts[i][1] - pts[i - 1][1];
+        this.cum.push(this.cum[this.cum.length - 1] + Math.hypot(dx, dy));
+      }
+      this.length = this.cum[this.cum.length - 1];
+    }
+    pointAt(s) {
+      s = clamp(s, 0, this.length);
+      let idx = 0;
+      for (let i = 0; i < this.cum.length - 1; i++) {
+        if (s >= this.cum[i] && s <= this.cum[i + 1]) {
+          idx = i;
+          break;
+        }
+      }
+      idx = Math.min(idx, this.pts.length - 2);
+      const [x1, y1] = this.pts[idx];
+      const [x2, y2] = this.pts[idx + 1];
+      const seg = this.cum[idx + 1] - this.cum[idx];
+      const t = seg > 0 ? (s - this.cum[idx]) / seg : 0;
+      const tx = (x2 - x1) / seg;
+      const ty = (y2 - y1) / seg;
+      return [[x1 + t * (x2 - x1), y1 + t * (y2 - y1)], [tx, ty]];
+    }
+  }
+
+  class Track {
+    constructor(widthScale = 1.0) {
+      this.w = LANE_W * widthScale;
+      this._buildPaths();
+      this._buildSegments();
+      this._buildCones();
+      this._buildDecor();
+    }
+    _buildPaths() {
+      const r_u = 10 / Math.PI;
+      const r_s = 2.4;
+      const l_s = (35 - 3 * Math.PI * r_s) / 2;
+      const b = new PathBuilder(0, 0, 0);
+      const marks = [];
+
+      const sec = (name, title, spacing) => marks.push([b.length, name, title, spacing]);
+
+      sec("brake", "Materi 1: Uji Pengereman", 2.5);
+      b.straight(20);
+      sec("uturn", "Materi 2: Uji U-turn", 3.0);
+      b.arc(r_u, 180, +1);
+      sec("link1", "Jalur penghubung", 3.0);
+      b.straight(8);
+      sec("s", "Materi 3: Uji Huruf S", 2.5);
+      b.arc(r_s, 180, -1);
+      b.straight(l_s);
+      b.arc(r_s, 180, +1);
+      b.straight(l_s);
+      b.arc(r_s, 180, -1);
+      sec("link2", "Jalur penghubung", 3.0);
+      b.straight(14);
+      b.arc(2.5, 90, -1);
+      sec("avoid", "Materi 4: Rem Menghindar", 3.0);
+      b.straight(18.4);
+
+      this.main = new Poly(b.pts);
+      this.total = this.main.length;
+      this.sections = [];
+      for (let i = 0; i < marks.length; i++) {
+        const s0 = marks[i][0];
+        const s1 = i + 1 < marks.length ? marks[i + 1][0] : this.total;
+        this.sections.push([s0, s1, marks[i][1], marks[i][2], marks[i][3]]);
+      }
+
+      this.fork = [b.x, b.y];
+      const [fx, fy] = this.fork;
+      this.branchOff = 1.4;
+      this.branches = {
+        L: new Poly([[fx, fy], [fx - 1.4, fy - 4.0], [fx - 1.4, fy - 5.6], [fx - 1.4, fy - 8.6]]),
+        R: new Poly([[fx, fy], [fx + 1.4, fy - 4.0], [fx + 1.4, fy - 5.6], [fx + 1.4, fy - 8.6]])
+      };
+      this.polys = [this.main, this.branches.L, this.branches.R];
+      this.stop_y0 = fy - 8.1;
+      this.stop_y1 = fy - 5.6;
+      this.rem_stem_y = fy + 9.0;
+      this.reveal_s = this.total - 9.0;
+    }
+
+    _buildSegments() {
+      this.segs = [];
+      this.mainSegs = [];
+      this.polys.forEach((poly, pi) => {
+        for (let i = 0; i < poly.pts.length - 1; i++) {
+          const [x1, y1] = poly.pts[i];
+          const [x2, y2] = poly.pts[i + 1];
+          const dx = x2 - x1, dy = y2 - y1;
+          const l2 = dx * dx + dy * dy;
+          if (l2 === 0) continue;
+          this.segs.push([x1, y1, dx, dy, l2]);
+          if (pi === 0) {
+            this.mainSegs.push([x1, y1, dx, dy, l2, Math.sqrt(l2), poly.cum[i]]);
+          }
+        }
+      });
+    }
+
+    distToRoad(x, y) {
+      let best = 1e9;
+      for (const [x1, y1, dx, dy, l2] of this.segs) {
+        const t = clamp(((x - x1) * dx + (y - y1) * dy) / l2, 0, 1);
+        const ex = x - (x1 + t * dx);
+        const ey = y - (y1 + t * dy);
+        const d = ex * ex + ey * ey;
+        if (d < best) best = d;
+      }
+      return Math.sqrt(best);
+    }
+
+    inside(x, y) {
+      const r2 = (this.w / 2) ** 2;
+      for (const [x1, y1, dx, dy, l2] of this.segs) {
+        const t = clamp(((x - x1) * dx + (y - y1) * dy) / l2, 0, 1);
+        const ex = x - (x1 + t * dx);
+        const ey = y - (y1 + t * dy);
+        if (ex * ex + ey * ey <= r2) return true;
+      }
+      return false;
+    }
+
+    progress(x, y, sPrev) {
+      let best = null;
+      for (const [x1, y1, dx, dy, l2, ln, s0] of this.mainSegs) {
+        if (s0 + ln < sPrev - 5 || s0 > sPrev + 8) continue;
+        const t = clamp(((x - x1) * dx + (y - y1) * dy) / l2, 0, 1);
+        const ex = x - (x1 + t * dx);
+        const ey = y - (y1 + t * dy);
+        const d = ex * ex + ey * ey;
+        if (best === null || d < best[0]) {
+          best = [d, s0 + t * ln];
+        }
+      }
+      return best ? best[1] : sPrev;
+    }
+
+    sectionAt(s) {
+      for (const [s0, s1, name, title] of this.sections) {
+        if (s >= s0 && s < s1) return { name, title };
+      }
+      const last = this.sections[this.sections.length - 1];
+      return { name: last[2], title: last[3] };
+    }
+
+    _buildCones() {
+      const raw = [];
+      const half = this.w / 2;
+
+      const sample = (poly, s0, s1, spacing) => {
+        let s = s0;
+        while (s < s1 - 1e-6) {
+          const [[px, py], [tx, ty]] = poly.pointAt(s);
+          for (const side of [-1, 1]) {
+            raw.push([px - ty * half * side, py + tx * half * side]);
+          }
+          s += spacing;
+        }
+      };
+
+      for (const [s0, s1, , , sp] of this.sections) {
+        sample(this.main, s0, s1, sp);
+      }
+      sample(this.branches.L, 0, this.branches.L.length, 3.0);
+      sample(this.branches.R, 0, this.branches.R.length, 3.0);
+
+      this.cones = [];
+      for (const [x, y] of raw) {
+        if (this.distToRoad(x, y) >= half - 0.06) {
+          this.cones.push({ x, y, hit: false });
+        }
+      }
+    }
+
+    _buildDecor() {
+      this.dashes = [];
+      this.arrows = [];
+      for (const poly of this.polys) {
+        let s = 0.4;
+        while (s + 0.5 < poly.length) {
+          const [p1] = poly.pointAt(s);
+          const [p2] = poly.pointAt(s + 0.5);
+          this.dashes.push([p1, p2]);
+          s += 1.1;
+        }
+        s = 2.0;
+        while (s < poly.length - 0.6) {
+          const [[px, py], [tx, ty]] = poly.pointAt(s);
+          const nx = -ty, ny = tx;
+          const tip = [px + tx * 0.5, py + ty * 0.5];
+          const l = [px - tx * 0.25 + nx * 0.3, py - ty * 0.25 + ny * 0.3];
+          const r = [px - tx * 0.25 - nx * 0.3, py - ty * 0.25 - ny * 0.3];
+          this.arrows.push([tip, l, r]);
+          s += 4.0;
+        }
+      }
+      let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+      for (const poly of this.polys) {
+        for (const [px, py] of poly.pts) {
+          if (px < minX) minX = px;
+          if (px > maxX) maxX = px;
+          if (py < minY) minY = py;
+          if (py > maxY) maxY = py;
+        }
+      }
+      this.bbox = [minX - 2, minY - 2, maxX + 2, maxY + 2];
+    }
+  }
+
+  // ------------------------------------------------- Partikel
+  class Particle {
+    constructor(x, y, color, vx, vy, life, size, gravity = 0) {
+      this.x = x;
+      this.y = y;
+      this.color = color;
+      this.vx = vx ?? (Math.random() * 6 - 3);
+      this.vy = vy ?? (Math.random() * 6 - 5);
+      this.life = life ?? (0.4 + Math.random() * 0.8);
+      this.maxLife = this.life;
+      this.size = size ?? (3 + Math.floor(Math.random() * 5));
+      this.gravity = gravity;
+    }
+    update(dt) {
+      this.x += this.vx * dt * 60;
+      this.y += this.vy * dt * 60;
+      this.vy += this.gravity * dt * 60;
+      this.life -= dt;
+      return this.life > 0;
+    }
+    draw(ctx) {
+      const alpha = Math.max(0, this.life / this.maxLife);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, Math.max(1, this.size * alpha), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  class StarParticle {
+    constructor() {
+      this.reset();
+    }
+    reset() {
+      this.x = Math.random() * CANVAS_W;
+      this.y = Math.random() * CANVAS_H;
+      this.speed = 0.3 + Math.random() * 1.2;
+      this.size = 1 + Math.random() * 2;
+      this.brightness = 100 + Math.floor(Math.random() * 155);
+      this.twinkle = Math.random() * Math.PI * 2;
+    }
+    update(dt) {
+      this.y += this.speed;
+      this.twinkle += dt * 3;
+      if (this.y > CANVAS_H + 5) {
+        this.reset();
+        this.y = -5;
+      }
+    }
+    draw(ctx) {
+      const bri = Math.floor(this.brightness * (0.6 + 0.4 * Math.sin(this.twinkle)));
+      ctx.fillStyle = `rgb(${bri},${bri},${Math.min(255, bri + 30)})`;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ------------------------------------------------- Game Utama
+  class Game {
+    constructor(canvas) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.sound = new SoundPlayer();
+
+      this.level = 2;
+      this.k = 34.0;
+      this.targetK = 34.0;
+      this.showGuides = true;
+      this.overview = false;
+
+      this.state = STATE_MENU;
+      this.countdownVal = 3;
+      this.countdownTimer = 1.0;
+
+      this.particles = [];
+      this.flashAlpha = 0;
+      this.finishAnim = 0;
+      this.menuTime = 0;
+
+      this.stars = Array.from({ length: 100 }, () => new StarParticle());
+      this.toasts = [];
+
+      this.keys = {};
+      this.touchState = { gas: false, brake: false, left: false, right: false };
+
+      this.playBtnRect = null;
+      this.levelButtons = [];
+      this.finishPlayBtn = null;
+      this.finishMenuBtn = null;
+
+      this.setLevel(2);
+      this.cam = [this.x, this.y];
+
+      this.bindEvents();
+    }
+
+    setLevel(level) {
+      this.level = level;
+      this.track = new Track(LEVELS[level].scale);
+      this.reset();
+    }
+
+    reset() {
+      this.x = 1.3;
+      this.y = 0.0;
+      this.th = 0.0;
+      this.v = 0.0;
+      this.delta = 0.0;
+      this.s = 0.0;
+      this.faults = [];
+      this.toasts = [];
+      this.track.cones.forEach(c => c.hit = false);
+      this.blocked = Math.random() < 0.5 ? "L" : "R";
+      this.remOn = false;
+      this.brakeDone = false;
+      this.revealed = false;
+      this.branch = null;
+      this.finished = false;
+      this.passed = false;
+      this.wrongLane = false;
+      this.started = false;
+      this.time = 0.0;
+      this.wasOut = false;
+      this.laneCd = 0.0;
+      this.particles = [];
+      this.flashAlpha = 0;
+      this.finishAnim = 0;
+      this.cam = [this.x, this.y];
+      this.V = matTranslate(CANVAS_W / 2, CANVAS_H / 2);
+      this.model = matTranslate(this.x, this.y);
+    }
+
+    get score() {
+      const penalty = this.faults.reduce((sum, f) => sum + f.pts, 0);
+      return Math.max(0, 100 - penalty);
+    }
+
+    fault(text, pts) {
+      this.faults.push({ text, pts });
+      this.toasts.push({ text: `-${pts}  ${text}`, color: RED, ttl: 2.8 });
+      this.flashAlpha = 0.45;
+      const [sx, sy] = this.toScreen(this.x, this.y);
+      for (let i = 0; i < 18; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const spd = 2 + Math.random() * 5;
+        this.particles.push(new Particle(
+          sx, sy,
+          Math.random() < 0.5 ? CONE_COLOR : "#ff3333",
+          Math.cos(a) * spd, Math.sin(a) * spd,
+          0.3 + Math.random() * 0.5, 3 + Math.random() * 4, 0.15
+        ));
+      }
+      this.sound.hit();
+    }
+
+    info(text, color = GREEN) {
+      this.toasts.push({ text, color, ttl: 2.8 });
+    }
+
+    // ----------------- Input Event Handling
+    bindEvents() {
+      window.addEventListener('keydown', e => {
+        this.sound.init();
+        this.keys[e.key.toLowerCase()] = true;
+        this.keys[e.code] = true;
+
+        if (e.key === "Escape") {
+          if (this.state === STATE_PLAYING || this.state === STATE_FINISHED || this.state === STATE_COUNTDOWN) {
+            this.state = STATE_MENU;
+          }
+        } else if (this.state === STATE_PLAYING) {
+          if (e.key === 'r' || e.key === 'R') this.reset();
+          if (e.key === 'g' || e.key === 'G') this.showGuides = !this.showGuides;
+          if (e.key === 'm' || e.key === 'M') this.overview = !this.overview;
+          if (e.key === 'f' || e.key === 'F') {
+            if (!this.finished) {
+              this.fault("Kaki turun", 5);
+              this.v = 0.0;
+            }
+          }
+          if (['1', '2', '3'].includes(e.key)) {
+            this.setLevel(parseInt(e.key));
+            this.startCountdown();
+          }
+        } else if (this.state === STATE_FINISHED) {
+          if (e.key === 'r' || e.key === 'R') {
+            this.reset();
+            this.startCountdown();
+          }
+        }
+      });
+
+      window.addEventListener('keyup', e => {
+        this.keys[e.key.toLowerCase()] = false;
+        this.keys[e.code] = false;
+      });
+
+      // Mouse click on canvas
+      this.canvas.addEventListener('click', e => {
+        this.sound.init();
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = CANVAS_W / rect.width;
+        const scaleY = CANVAS_H / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        if (this.state === STATE_MENU) {
+          if (this.playBtnRect && this.inRect(x, y, this.playBtnRect)) {
+            this.startCountdown();
+            return;
+          }
+          for (const btn of this.levelButtons) {
+            if (this.inRect(x, y, btn.rect)) {
+              this.setLevel(btn.level);
+              return;
+            }
+          }
+        } else if (this.state === STATE_FINISHED) {
+          if (this.finishPlayBtn && this.inRect(x, y, this.finishPlayBtn)) {
+            this.reset();
+            this.startCountdown();
+          } else if (this.finishMenuBtn && this.inRect(x, y, this.finishMenuBtn)) {
+            this.state = STATE_MENU;
+          }
+        }
+      });
+
+      // Mobile touch buttons
+      const bindTouch = (id, prop) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const start = e => { e.preventDefault(); this.sound.init(); this.touchState[prop] = true; };
+        const end = e => { e.preventDefault(); this.touchState[prop] = false; };
+        el.addEventListener('touchstart', start);
+        el.addEventListener('touchend', end);
+        el.addEventListener('mousedown', start);
+        el.addEventListener('mouseup', end);
+      };
+      bindTouch('btn-gas', 'gas');
+      bindTouch('btn-brake', 'brake');
+      bindTouch('btn-left', 'left');
+      bindTouch('btn-right', 'right');
+
+      const footBtn = document.getElementById('btn-foot');
+      if (footBtn) {
+        footBtn.addEventListener('click', () => {
+          this.sound.init();
+          if (this.state === STATE_PLAYING && !this.finished) {
+            this.fault("Kaki turun", 5);
+            this.v = 0.0;
+          }
+        });
+      }
+    }
+
+    inRect(x, y, r) {
+      return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+    }
+
+    startCountdown() {
+      this.state = STATE_COUNTDOWN;
+      this.countdownVal = 3;
+      this.countdownTimer = 1.0;
+    }
+
+    // ----------------- Update Logika
+    update(dt) {
+      if (this.state !== STATE_PLAYING) return;
+
+      const gas = this.finished ? false : (this.keys['arrowup'] || this.keys['w'] || this.touchState.gas);
+      const brake = this.finished ? true : (this.keys['arrowdown'] || this.keys['s'] || this.touchState.brake);
+      const left = this.finished ? false : (this.keys['arrowleft'] || this.keys['a'] || this.touchState.left);
+      const right = this.finished ? false : (this.keys['arrowright'] || this.keys['d'] || this.touchState.right);
+
+      // Kecepatan
+      if (gas) {
+        this.v += ACC * dt;
+      } else {
+        this.v -= (0.35 + 0.06 * this.v) * dt;
+      }
+      if (brake) {
+        this.v -= BRAKE * dt;
+      }
+      this.v = clamp(this.v, 0.0, V_MAX);
+
+      // Setir (Steering)
+      const maxSteer = (40 * Math.PI / 180) * Math.max(0.4, 1 - this.v / 14);
+      const target = (left ? -maxSteer : 0) + (right ? maxSteer : 0);
+      const rate = (140 * Math.PI / 180) * dt;
+      this.delta += clamp(target - this.delta, -rate, rate);
+      this.delta = clamp(this.delta, -maxSteer, maxSteer);
+
+      // Kinematika sepeda motor (Bicycle model)
+      this.th += (this.v / WHEELBASE) * Math.tan(this.delta) * dt;
+      this.x += this.v * Math.cos(this.th) * dt;
+      this.y += this.v * Math.sin(this.th) * dt;
+
+      if (!this.started && this.v > 0.05) this.started = true;
+      if (this.started && !this.finished) this.time += dt;
+
+      // Matriks model motor: M = T(x, y) . R(th)
+      this.model = matMul(matTranslate(this.x, this.y), matRotate(this.th));
+      const inv = inverseAffine(this.model);
+
+      this.s = this.track.progress(this.x, this.y, this.s);
+      const hl = MOTOR_L / 2, hw = MOTOR_W / 2;
+      const front = applyMat(this.model, hl, 0);
+
+      // Tabrakan Patok (Cones)
+      for (const c of this.track.cones) {
+        if (c.hit) continue;
+        const dist2 = (c.x - this.x) ** 2 + (c.y - this.y) ** 2;
+        if (dist2 > 4.0) continue;
+        const [lx, ly] = applyMat(inv, c.x, c.y);
+        const dx = Math.max(Math.abs(lx) - hl, 0);
+        const dy = Math.max(Math.abs(ly) - hw, 0);
+        if (dx * dx + dy * dy <= CONE_R ** 2) {
+          c.hit = true;
+          if (!this.finished) this.fault("Menyenggol patok", 5);
+        }
+      }
+
+      // Keluar Jalur
+      this.laneCd -= dt;
+      const cornerPts = [
+        [hl, -hw], [hl, hw], [-hl, -hw], [-hl, hw],
+        [hl, 0], [-hl, 0], [0, -hw], [0, hw]
+      ];
+      const isOut = cornerPts.some(([px, py]) => !this.track.inside(...applyMat(this.model, px, py)));
+      if (isOut && !this.wasOut && this.laneCd <= 0 && !this.finished) {
+        this.fault("Keluar jalur / menginjak garis", 5);
+        this.laneCd = 0.8;
+      }
+      this.wasOut = isOut;
+
+      // Materi 1: Pengereman
+      if (!this.remOn && !this.brakeDone && this.s < 20 && front[0] >= REM_X) {
+        this.remOn = true;
+      }
+      if (this.remOn && !this.brakeDone) {
+        if (this.v < 0.05) {
+          this.brakeDone = true;
+          const fx = front[0];
+          if (fx >= BOX_X0 && fx <= BOX_X1) {
+            this.info("Pengereman BERHASIL: berhenti di kotak kuning");
+          } else if (fx < BOX_X0) {
+            this.fault("Berhenti sebelum kotak kuning", 10);
+          } else {
+            this.fault("Berhenti melewati kotak kuning", 10);
+          }
+        } else if (front[0] > 20.3) {
+          this.brakeDone = true;
+          this.fault("Pengereman gagal: terlewat dari kotak", 15);
+        }
+      }
+
+      // Materi 4: Rem Menghindar
+      const [fx0, fy0] = this.track.fork;
+      if (!this.revealed && this.s >= this.track.reveal_s) {
+        this.revealed = true;
+      }
+      if (this.branch === null && front[1] < fy0 - 2.0 && this.s > this.track.total - 6) {
+        this.branch = this.x < fx0 ? "L" : "R";
+        if (this.branch === this.blocked) {
+          this.wrongLane = true;
+          this.fault("Masuk lajur yang tertutup", 20);
+        }
+      }
+      if (this.branch && !this.finished && this.v < 0.05 && front[1] < fy0 - 5.2) {
+        this.finished = true;
+        if (front[1] >= this.track.stop_y0 - 0.1 && front[1] <= this.track.stop_y1 + 0.1) {
+          this.info("Berhenti tepat di kotak STOP");
+        } else {
+          this.fault("Berhenti di luar kotak STOP", 10);
+        }
+        this.passed = this.score >= 70 && !this.wrongLane;
+        this.state = STATE_FINISHED;
+        this.finishAnim = 0;
+        if (this.passed) {
+          this.sound.fanfare();
+          for (let i = 0; i < 80; i++) {
+            this.particles.push(new Particle(
+              CANVAS_W * 0.2 + Math.random() * CANVAS_W * 0.6,
+              Math.random() * CANVAS_H * 0.3,
+              [GREEN, YELLOW, CYAN, "#ff64c8", BLUE][Math.floor(Math.random() * 5)],
+              Math.random() * 6 - 3, Math.random() * 4 - 1,
+              2.0 + Math.random() * 2.0, 4 + Math.random() * 6, 0.05
+            ));
+          }
+        }
+      }
+
+      // Toasts
+      for (const t of this.toasts) t.ttl -= dt;
+      this.toasts = this.toasts.filter(t => t.ttl > 0);
+
+      // Flash
+      if (this.flashAlpha > 0) {
+        this.flashAlpha = Math.max(0, this.flashAlpha - 1.2 * dt);
+      }
+
+      // Partikel
+      this.particles = this.particles.filter(p => p.update(dt));
+    }
+
+    // ----------------- Kamera
+    updateCamera() {
+      let tx, ty, tk;
+      if (this.overview) {
+        const [x0, y0, x1, y1] = this.track.bbox;
+        tx = (x0 + x1) / 2;
+        ty = (y0 + y1) / 2;
+        tk = Math.min((CANVAS_W - 40) / (x1 - x0), (CANVAS_H - 40) / (y1 - y0));
+      } else {
+        tx = this.x;
+        ty = this.y;
+        tk = this.targetK;
+      }
+      this.cam[0] += (tx - this.cam[0]) * 0.12;
+      this.cam[1] += (ty - this.cam[1]) * 0.12;
+      this.k += (tk - this.k) * 0.12;
+
+      // Matriks Kamera: V = T(W/2, H/2) . S(k) . T(-camX, -camY)
+      this.V = matMul(
+        matTranslate(CANVAS_W / 2, CANVAS_H / 2),
+        matMul(matScale(this.k), matTranslate(-this.cam[0], -this.cam[1]))
+      );
+    }
+
+    toScreen(x, y) {
+      return applyMat(this.V, x, y);
+    }
+
+    // ----------------- Drawing Dunia
+    drawRoad() {
+      const ctx = this.ctx;
+      const tr = this.track;
+      const k = this.k;
+
+      // Jalur aspal & tepi
+      [ { color: EDGE_COLOR, extra: 0.14 }, { color: ROAD_COLOR, extra: 0.0 } ].forEach(({ color, extra }) => {
+        const wpx = Math.max(2, (tr.w + extra) * k);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = wpx;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        tr.polys.forEach(poly => {
+          ctx.beginPath();
+          poly.pts.forEach(([px, py], i) => {
+            const [sx, sy] = this.toScreen(px, py);
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+          });
+          ctx.stroke();
+        });
+      });
+
+      // Garis tengah putus-putus
+      ctx.strokeStyle = "rgba(180, 200, 240, 0.7)";
+      ctx.lineWidth = Math.max(1, 0.06 * k);
+      ctx.beginPath();
+      tr.dashes.forEach(([p1, p2]) => {
+        const [s1x, s1y] = this.toScreen(...p1);
+        const [s2x, s2y] = this.toScreen(...p2);
+        ctx.moveTo(s1x, s1y);
+        ctx.lineTo(s2x, s2y);
+      });
+      ctx.stroke();
+
+      // Panah arah
+      ctx.fillStyle = "rgba(200, 220, 250, 0.75)";
+      tr.arrows.forEach(([tip, l, r]) => {
+        const [tx, ty] = this.toScreen(...tip);
+        const [lx, ly] = this.toScreen(...l);
+        const [rx, ry] = this.toScreen(...r);
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(lx, ly);
+        ctx.lineTo(rx, ry);
+        ctx.closePath();
+        ctx.fill();
+      });
+    }
+
+    drawMarkings() {
+      const ctx = this.ctx;
+      const tr = this.track;
+      const k = this.k;
+      const hw = tr.w / 2;
+      const lw = Math.max(2, 0.1 * k);
+
+      ctx.lineWidth = lw;
+
+      // Garis START
+      ctx.strokeStyle = WHITE;
+      ctx.beginPath();
+      const [s0x, s0y] = this.toScreen(0, -hw);
+      const [s1x, s1y] = this.toScreen(0, hw);
+      ctx.moveTo(s0x, s0y);
+      ctx.lineTo(s1x, s1y);
+      ctx.stroke();
+      this.drawWorldText("START", 0.9, 0, 0.42, WHITE, 90);
+
+      // Materi 1
+      ctx.beginPath();
+      const [r0x, r0y] = this.toScreen(REM_X, -hw);
+      const [r1x, r1y] = this.toScreen(REM_X, hw);
+      ctx.moveTo(r0x, r0y);
+      ctx.lineTo(r1x, r1y);
+      ctx.stroke();
+      this.drawWorldText("REM", REM_X + 1.0, 0, 0.55, YELLOW);
+      this.drawWorldText("STOP", BOX_X0 - 1.0, 0, 0.42, WHITE);
+
+      // Kotak kuning Materi 1
+      const box = [
+        [BOX_X0, -hw + 0.12], [BOX_X1, -hw + 0.12],
+        [BOX_X1, hw - 0.12], [BOX_X0, hw - 0.12]
+      ];
+      ctx.strokeStyle = YELLOW;
+      ctx.beginPath();
+      box.forEach(([bx, by], i) => {
+        const [sx, sy] = this.toScreen(bx, by);
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      });
+      ctx.closePath();
+      ctx.stroke();
+
+      // Silang kotak kuning
+      const [b0x, b0y] = this.toScreen(...box[0]);
+      const [b2x, b2y] = this.toScreen(...box[2]);
+      const [b1x, b1y] = this.toScreen(...box[1]);
+      const [b3x, b3y] = this.toScreen(...box[3]);
+      ctx.beginPath();
+      ctx.moveTo(b0x, b0y); ctx.lineTo(b2x, b2y);
+      ctx.moveTo(b1x, b1y); ctx.lineTo(b3x, b3y);
+      ctx.stroke();
+
+      // Materi 4: Rem & Cabang STOP
+      const [fx, fy] = tr.fork;
+      ctx.strokeStyle = WHITE;
+      ctx.beginPath();
+      const [rm0x, rm0y] = this.toScreen(fx - hw, tr.rem_stem_y);
+      const [rm1x, rm1y] = this.toScreen(fx + hw, tr.rem_stem_y);
+      ctx.moveTo(rm0x, rm0y); ctx.lineTo(rm1x, rm1y);
+      ctx.stroke();
+      this.drawWorldText("REM", fx, tr.rem_stem_y - 1.0, 0.55, YELLOW, 90);
+
+      [ { sgn: -1, key: "L" }, { sgn: 1, key: "R" } ].forEach(({ sgn, key }) => {
+        const bx = fx + sgn * tr.branchOff;
+        const bw = hw - 0.1;
+        const rect = [
+          [bx - bw, tr.stop_y0], [bx + bw, tr.stop_y0],
+          [bx + bw, tr.stop_y1], [bx - bw, tr.stop_y1]
+        ];
+        let color = WHITE;
+        if (this.revealed) {
+          color = (key === this.blocked) ? RED : GREEN;
+        }
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        rect.forEach(([rx, ry], i) => {
+          const [sx, sy] = this.toScreen(rx, ry);
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+        ctx.closePath();
+        ctx.stroke();
+        this.drawWorldText("STOP", bx, (tr.stop_y0 + tr.stop_y1) / 2, 0.42, color, 90);
+
+        if (this.revealed && key === this.blocked) {
+          const [c0x, c0y] = this.toScreen(...rect[0]);
+          const [c2x, c2y] = this.toScreen(...rect[2]);
+          const [c1x, c1y] = this.toScreen(...rect[1]);
+          const [c3x, c3y] = this.toScreen(...rect[3]);
+          ctx.beginPath();
+          ctx.moveTo(c0x, c0y); ctx.lineTo(c2x, c2y);
+          ctx.moveTo(c1x, c1y); ctx.lineTo(c3x, c3y);
+          ctx.stroke();
+        }
+      });
+    }
+
+    drawWorldText(text, wx, wy, h_m, color, angleDeg = 0) {
+      const size = Math.floor(h_m * this.k);
+      if (size < 7) return;
+      const [sx, sy] = this.toScreen(wx, wy);
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.translate(sx, sy);
+      if (angleDeg) ctx.rotate((angleDeg * Math.PI) / 180);
+      ctx.fillStyle = color;
+      ctx.font = `bold ${size}px Consolas, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    }
+
+    drawCones() {
+      const ctx = this.ctx;
+      const r = Math.max(4, 0.20 * this.k);
+      for (const c of this.track.cones) {
+        const [sx, sy] = this.toScreen(c.x, c.y);
+        if (sx < -20 || sx > CANVAS_W + 20 || sy < -20 || sy > CANVAS_H + 20) continue;
+        const col = c.hit ? CONE_HIT : CONE_COLOR;
+
+        // Shadow
+        ctx.fillStyle = "rgba(10, 10, 20, 0.7)";
+        ctx.beginPath();
+        ctx.arc(sx + 2, sy + 3, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cone Body
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ring putih
+        ctx.strokeStyle = WHITE;
+        ctx.lineWidth = Math.max(1, r / 4);
+        ctx.beginPath();
+        ctx.arc(sx, sy, Math.max(1, r / 2), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    drawMotor() {
+      const ctx = this.ctx;
+      const MV = matMul(this.V, this.model);
+      const MF = matMul(MV, matMul(matTranslate(0.65, 0), matRotate(this.delta)));
+
+      const drawPolyMat = (M, pts, fill, stroke = null, lw = 1) => {
+        ctx.beginPath();
+        pts.forEach(([px, py], i) => {
+          const [sx, sy] = applyMat(M, px, py);
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+        ctx.closePath();
+        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+      };
+
+      // Bayangan motor
+      const MV_shadow = matMul(matTranslate(4, 4), MV);
+      drawPolyMat(MV_shadow, rectPts(0, 0, 1.7, 0.28), "rgba(0, 0, 0, 0.45)");
+
+      // Roda belakang & depan
+      drawPolyMat(MV, rectPts(-0.65, 0, 0.7, 0.14), WHEEL_COLOR);
+      drawPolyMat(MF, rectPts(0, 0, 0.7, 0.14), WHEEL_COLOR);
+
+      // Bodi motor
+      drawPolyMat(MV, rectPts(0, 0, 1.7, 0.28), CAR_COLOR);
+      drawPolyMat(MV, rectPts(0.3, 0, 0.9, 0.20), "#ff7878");
+
+      // Bahu pengendara
+      drawPolyMat(MV, rectPts(-0.2, 0, 0.28, 0.55), RIDER_COLOR);
+
+      // Helm pengendara
+      const [hx, hy] = applyMat(MV, -0.15, 0);
+      const helmR = Math.max(4, 0.22 * this.k);
+      ctx.fillStyle = "#e6e6f0";
+      ctx.beginPath();
+      ctx.arc(hx, hy, helmR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#6478a0";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Visor
+      ctx.strokeStyle = "#78b4ff";
+      ctx.lineWidth = Math.max(1, helmR / 3);
+      ctx.beginPath();
+      ctx.arc(hx, hy, helmR - 2, 0.1 * Math.PI, 0.9 * Math.PI);
+      ctx.stroke();
+
+      // Stang
+      const [st1x, st1y] = applyMat(MF, 0, -MOTOR_W / 2);
+      const [st2x, st2y] = applyMat(MF, 0, MOTOR_W / 2);
+      ctx.strokeStyle = "#b4b4c8";
+      ctx.lineWidth = Math.max(2, 0.07 * this.k);
+      ctx.beginPath();
+      ctx.moveTo(st1x, st1y); ctx.lineTo(st2x, st2y);
+      ctx.stroke();
+
+      // Garis bantu & OBB jika diaktifkan
+      if (this.showGuides) {
+        drawPolyMat(MV, rectPts(0, 0, MOTOR_L, MOTOR_W), null, MAGENTA, 2);
+        const [ox, oy] = applyMat(MV, 0, 0);
+        const [xAx, xAy] = applyMat(MV, 1.6, 0);
+        const [yAx, yAy] = applyMat(MV, 0, 1.6);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = GREEN;
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(xAx, xAy); ctx.stroke();
+        ctx.strokeStyle = BLUE;
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(yAx, yAy); ctx.stroke();
+
+        if (this.v > 0.1) {
+          const [vx_s, vy_s] = this.toScreen(this.x + Math.cos(this.th) * this.v * 0.5, this.y + Math.sin(this.th) * this.v * 0.5);
+          ctx.strokeStyle = YELLOW;
+          ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(vx_s, vy_s); ctx.stroke();
+        }
+      }
+    }
+
+    // ----------------- HUD & UI Components
+    drawHUD() {
+      const ctx = this.ctx;
+      const { title } = this.track.sectionAt(this.s);
+      const lvl = LEVELS[this.level];
+
+      // Bar Progres Lintasan di atas
+      const pct = clamp(this.s / this.track.total, 0, 1);
+      ctx.fillStyle = "#14192d";
+      ctx.fillRect(10, 10, CANVAS_W - 20, 14);
+      ctx.strokeStyle = "#28325a";
+      ctx.strokeRect(10, 10, CANVAS_W - 20, 14);
+
+      ctx.fillStyle = `rgb(${Math.floor(52 + pct * 50)}, ${Math.floor(152 + pct * 52)}, ${Math.floor(219 - pct * 100)})`;
+      ctx.fillRect(10, 10, (CANVAS_W - 20) * pct, 14);
+
+      ctx.fillStyle = WHITE;
+      ctx.font = "bold 11px Consolas, monospace";
+      ctx.textAlign = "left";
+      ctx.fillText(`Lintasan: ${(pct * 100).toFixed(0)}%`, 18, 21);
+
+      // Panel Info Kiri Atas
+      ctx.fillStyle = "rgba(10, 15, 28, 0.85)";
+      ctx.fillRect(10, 32, 430, 192);
+      ctx.strokeStyle = "#3c78dc";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(10, 32, 430, 192);
+
+      ctx.font = "bold 18px Segoe UI, sans-serif";
+      ctx.fillStyle = "#dce6ff";
+      ctx.fillText("SIMULASI UJI PRAKTIK SIM C", 24, 56);
+
+      ctx.font = "bold 15px Segoe UI, sans-serif";
+      ctx.fillStyle = YELLOW;
+      ctx.fillText(title, 24, 78);
+
+      ctx.font = "12px Segoe UI, sans-serif";
+      ctx.fillStyle = "#a0b4dc";
+      ctx.fillText(`Level: ${lvl.name} (lebar ${this.track.w.toFixed(2)}m, dilatasi x${lvl.scale.toFixed(2)})`, 24, 98);
+
+      // Skor
+      const sc = this.score;
+      const scCol = sc >= 80 ? GREEN : (sc >= 70 ? YELLOW : RED);
+      ctx.font = "bold 20px Consolas, monospace";
+      ctx.fillStyle = scCol;
+      ctx.fillText(`Skor: ${sc}`, 24, 124);
+
+      // Mini Score Bar
+      ctx.fillStyle = "#1e2337";
+      ctx.fillRect(125, 112, 140, 12);
+      ctx.fillStyle = scCol;
+      ctx.fillRect(125, 112, 140 * (sc / 100), 12);
+
+      ctx.font = "13px Segoe UI, sans-serif";
+      ctx.fillStyle = sc >= 70 ? scCol : RED;
+      ctx.fillText(`(Lulus ≥ 70)   Pelanggaran: ${this.faults.length}`, 275, 122);
+
+      // Waktu & Speed
+      const mm = String(Math.floor(this.time / 60)).padStart(2, '0');
+      const ss = String(Math.floor(this.time % 60)).padStart(2, '0');
+      ctx.font = "bold 20px Consolas, monospace";
+      ctx.fillStyle = "#64dcff";
+      ctx.fillText(`⏱ ${mm}:${ss}`, 24, 148);
+
+      ctx.font = "14px Segoe UI, sans-serif";
+      ctx.fillStyle = "#b4c8dc";
+      ctx.fillText(`Kecepatan: ${(this.v * 3.6).toFixed(1)} km/jam`, 140, 146);
+
+      // 2 Pelanggaran Terakhir
+      ctx.font = "12px Consolas, monospace";
+      ctx.fillStyle = "#ff968c";
+      this.faults.slice(-2).forEach((f, idx) => {
+        ctx.fillText(`• -${f.pts} ${f.text}`, 24, 172 + idx * 18);
+      });
+
+      // Panel Matriks Transformasi (Kiri Bawah)
+      if (this.showGuides) {
+        ctx.fillStyle = "rgba(10, 15, 28, 0.85)";
+        ctx.fillRect(10, CANVAS_H - 165, 430, 155);
+        ctx.strokeStyle = "#3c64b4";
+        ctx.strokeRect(10, CANVAS_H - 165, 430, 155);
+
+        ctx.font = "bold 13px Segoe UI, sans-serif";
+        ctx.fillStyle = "#78c8ff";
+        ctx.fillText("Matriks model: M = T(x,y) · R(θ)", 22, CANVAS_H - 144);
+
+        const c_th = Math.cos(this.th), s_th = Math.sin(this.th);
+        ctx.font = "13px Consolas, monospace";
+        ctx.fillStyle = "#82dcff";
+        ctx.fillText(`[ ${c_th.toFixed(3).padStart(6)}  ${(-s_th).toFixed(3).padStart(6)}  ${this.x.toFixed(2).padStart(7)} ]`, 22, CANVAS_H - 124);
+        ctx.fillText(`[ ${s_th.toFixed(3).padStart(6)}  ${c_th.toFixed(3).padStart(6)}  ${this.y.toFixed(2).padStart(7)} ]`, 22, CANVAS_H - 106);
+        ctx.fillText(`[  0.000   0.000    1.00 ]`, 22, CANVAS_H - 88);
+
+        ctx.fillStyle = "#dce6ff";
+        ctx.font = "12px Segoe UI, sans-serif";
+        ctx.fillText(`θ = ${((this.th * 180 / Math.PI) % 360).toFixed(1)}°   Setir: ${(this.delta * 180 / Math.PI).toFixed(1)}°`, 22, CANVAS_H - 68);
+        ctx.fillText(`Kamera: Translasi + Dilatasi k = ${this.k.toFixed(1)} px/m`, 22, CANVAS_H - 48);
+        ctx.fillStyle = "#a0a0b4";
+        ctx.fillText("Hijau=Sumbu X   Biru=Sumbu Y   Kuning=Vektor Kecepatan", 22, CANVAS_H - 28);
+      }
+
+      // Panel Kontrol (Kanan Bawah)
+      ctx.fillStyle = "rgba(10, 15, 28, 0.85)";
+      ctx.fillRect(CANVAS_W - 310, CANVAS_H - 130, 300, 120);
+      ctx.strokeStyle = "#324696";
+      ctx.strokeRect(CANVAS_W - 310, CANVAS_H - 130, 300, 120);
+
+      ctx.fillStyle = "#c8d2e6";
+      ctx.font = "12px Segoe UI, sans-serif";
+      const tips = [
+        "W/↑: Gas   S/↓: Rem   A/D: Belok",
+        "F: Kaki Turun (-5 poin)",
+        "G: Matriks & Garis Bantu   M: Peta Penuh",
+        "1/2/3: Pilih Level   R: Ulangi",
+        "ESC: Menu Utama"
+      ];
+      tips.forEach((t, i) => ctx.fillText(t, CANVAS_W - 295, CANVAS_H - 108 + i * 21));
+
+      // Speedometer Arc di atas panel kontrol
+      this.drawSpeedometer(CANVAS_W - 65, CANVAS_H - 195, 42, this.v * 3.6);
+
+      // Banner Situasional
+      let banner = null;
+      if (this.remOn && !this.brakeDone) {
+        banner = "REM! Berhenti di dalam kotak kuning";
+      } else if (this.revealed && this.branch === null && !this.finished) {
+        banner = `Lajur ${this.blocked === 'L' ? 'KIRI' : 'KANAN'} TERTUTUP! → Belok ${this.blocked === 'L' ? 'KANAN' : 'KIRI'}`;
+      }
+      if (banner) {
+        ctx.font = "bold 24px Segoe UI, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#280000";
+        ctx.fillText(banner, CANVAS_W / 2 + 102, 52);
+        ctx.fillStyle = "#ff4646";
+        ctx.fillText(banner, CANVAS_W / 2 + 100, 50);
+      }
+
+      // Toasts
+      ctx.font = "bold 16px Segoe UI, sans-serif";
+      ctx.textAlign = "center";
+      this.toasts.slice(-3).forEach((t, i) => {
+        ctx.fillStyle = t.color;
+        ctx.fillText(t.text, CANVAS_W / 2 + 100, 84 + i * 26);
+      });
+
+      if (!this.started && !this.finished) {
+        ctx.font = "bold 18px Segoe UI, sans-serif";
+        ctx.fillStyle = WHITE;
+        ctx.textAlign = "center";
+        ctx.fillText("Tekan W / Panah Atas / GAS untuk mulai", CANVAS_W / 2 + 100, CANVAS_H - 35);
+      }
+    }
+
+    drawSpeedometer(cx, cy, radius, speedKmh) {
+      const ctx = this.ctx;
+      const startA = Math.PI * 0.75;
+      const endA = Math.PI * 2.25;
+      const totalA = endA - startA;
+
+      // Gauge background panel
+      ctx.fillStyle = "rgba(10, 15, 28, 0.85)";
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#3c78dc";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Arc Ticks
+      for (let i = 0; i <= 8; i++) {
+        const frac = i / 8;
+        const a = startA + frac * totalA;
+        const x0 = cx + Math.cos(a) * (radius - 6);
+        const y0 = cy + Math.sin(a) * (radius - 6);
+        const x1 = cx + Math.cos(a) * radius;
+        const y1 = cy + Math.sin(a) * radius;
+        ctx.strokeStyle = "#50648c";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      }
+
+      // Speed Value Arc
+      const frac = clamp(speedKmh / 45, 0, 1);
+      const col = frac < 0.6 ? GREEN : (frac < 0.85 ? YELLOW : RED);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 4, startA, startA + frac * totalA);
+      ctx.stroke();
+
+      // Jarum
+      const aNeedle = startA + frac * totalA;
+      ctx.strokeStyle = WHITE;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(aNeedle) * (radius - 8), cy + Math.sin(aNeedle) * (radius - 8));
+      ctx.stroke();
+
+      ctx.fillStyle = WHITE;
+      ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+
+      ctx.font = "bold 15px Consolas, monospace";
+      ctx.fillStyle = col;
+      ctx.textAlign = "center";
+      ctx.fillText(Math.floor(speedKmh), cx, cy + 18);
+      ctx.font = "10px Segoe UI, sans-serif";
+      ctx.fillStyle = "#a0a0b4";
+      ctx.fillText("km/jam", cx, cy + 30);
+    }
+
+    // ----------------- Layar Menu & Countdown
+    drawMenu(dt) {
+      this.menuTime += dt;
+      const ctx = this.ctx;
+
+      // Gradient background
+      const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+      grad.addColorStop(0, "#0a0f28");
+      grad.addColorStop(1, "#190a32");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+      // Bintang
+      this.stars.forEach(s => {
+        s.update(dt);
+        s.draw(ctx);
+      });
+
+      // Efek ornamen lingkaran berputar
+      ctx.save();
+      const cx = CANVAS_W / 2, cy = CANVAS_H / 2 - 50;
+      for (let i = 0; i < 3; i++) {
+        const a = this.menuTime * (0.3 + i * 0.15) + (i * Math.PI * 2) / 3;
+        const rx = cx + Math.cos(a) * (120 + i * 20);
+        const ry = cy + Math.sin(a) * (60 + i * 10);
+        ctx.strokeStyle = `rgba(${60 + i * 20}, ${80 + i * 15}, ${160 + i * 20}, 0.5)`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(rx, ry, 45 - i * 8, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Judul
+      ctx.textAlign = "center";
+      ctx.font = "bold 46px Segoe UI, sans-serif";
+      ctx.fillStyle = "#ffd23c";
+      ctx.fillText("SIMULASI UJI PRAKTIK SIM C", CANVAS_W / 2, 105);
+
+      ctx.font = "20px Segoe UI, sans-serif";
+      ctx.fillStyle = "#a0c8ff";
+      ctx.fillText("Transformasi Geometri & Fisika 2D | Versi Web", CANVAS_W / 2, 145);
+
+      // Garis pembatas
+      ctx.strokeStyle = "#5064c8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(CANVAS_W / 2 - 300, 175);
+      ctx.lineTo(CANVAS_W / 2 + 300, 175);
+      ctx.stroke();
+
+      // Tombol MULAI
+      this.playBtnRect = { x: CANVAS_W / 2 - 110, y: 220, w: 220, h: 56 };
+      ctx.fillStyle = "#289646";
+      ctx.fillRect(this.playBtnRect.x, this.playBtnRect.y, this.playBtnRect.w, this.playBtnRect.h);
+      ctx.strokeStyle = "#40d070";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(this.playBtnRect.x, this.playBtnRect.y, this.playBtnRect.w, this.playBtnRect.h);
+
+      ctx.font = "bold 24px Segoe UI, sans-serif";
+      ctx.fillStyle = WHITE;
+      ctx.fillText("▶  MULAI", CANVAS_W / 2, 256);
+
+      // Pemilihan Level
+      ctx.font = "16px Segoe UI, sans-serif";
+      ctx.fillStyle = "#b4c8ff";
+      ctx.fillText("PILIH TINGKAT KESULITAN:", CANVAS_W / 2, 320);
+
+      this.levelButtons = [];
+      const btnW = 150, btnH = 46, spacing = 20;
+      const startX = CANVAS_W / 2 - (3 * btnW + 2 * spacing) / 2;
+      [1, 2, 3].forEach((lv, i) => {
+        const rect = { x: startX + i * (btnW + spacing), y: 340, w: btnW, h: btnH };
+        this.levelButtons.push({ level: lv, rect });
+        const isSel = this.level === lv;
+        const color = LEVELS[lv].color;
+
+        ctx.fillStyle = isSel ? color : "#14192d";
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = isSel ? 3 : 2;
+        ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+        ctx.fillStyle = WHITE;
+        ctx.font = `${isSel ? 'bold ' : ''}16px Segoe UI, sans-serif`;
+        ctx.fillText(`${lv} - ${LEVELS[lv].name}`, rect.x + rect.w / 2, rect.y + 28);
+      });
+
+      // Kontrol Bawah
+      ctx.strokeStyle = "#3c5096";
+      ctx.beginPath();
+      ctx.moveTo(CANVAS_W / 2 - 380, CANVAS_H - 160);
+      ctx.lineTo(CANVAS_W / 2 + 380, CANVAS_H - 160);
+      ctx.stroke();
+
+      ctx.fillStyle = "#a0c8ff";
+      ctx.font = "bold 15px Segoe UI, sans-serif";
+      ctx.fillText("KONTROL PENGENDARA:", CANVAS_W / 2, CANVAS_H - 132);
+
+      ctx.fillStyle = WHITE;
+      ctx.font = "14px Segoe UI, sans-serif";
+      ctx.fillText("W / ↑ : Gas              S / ↓ : Rem", CANVAS_W / 2, CANVAS_H - 108);
+      ctx.fillText("A / ← : Belok Kiri       D / → : Belok Kanan", CANVAS_W / 2, CANVAS_H - 86);
+      ctx.fillStyle = "#a0a0b4";
+      ctx.fillText("F : Kaki Turun   |   G : Garis Bantu & Matriks   |   R : Restart", CANVAS_W / 2, CANVAS_H - 62);
+      ctx.fillText("(Pada layar sentuh, kontrol virtual otomatis tersedia di bawah layar)", CANVAS_W / 2, CANVAS_H - 40);
+    }
+
+    drawCountdown(dt) {
+      this.updateCamera();
+      this.ctx.fillStyle = BG_COLOR;
+      this.ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      this.drawRoad();
+      this.drawMarkings();
+      this.drawCones();
+      this.drawMotor();
+
+      this.countdownTimer -= dt;
+      if (this.countdownTimer <= 0) {
+        this.countdownVal -= 1;
+        if (this.countdownVal <= 0) {
+          this.state = STATE_PLAYING;
+          return;
+        }
+        this.countdownTimer = 1.0;
+        this.sound.beep(800, 0.1);
+      }
+
+      // Overlay
+      this.ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+      this.ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+      // Text Countdown
+      const scale = 1.0 + (1.0 - this.countdownTimer) * 0.4;
+      const size = Math.floor(130 * scale);
+      this.ctx.font = `bold ${size}px Segoe UI, sans-serif`;
+      this.ctx.textAlign = "center";
+      this.ctx.textBaseline = "middle";
+      this.ctx.fillStyle = this.countdownVal > 0 ? YELLOW : GREEN;
+      this.ctx.fillText(this.countdownVal > 0 ? this.countdownVal : "GO!", CANVAS_W / 2, CANVAS_H / 2);
+    }
+
+    // ----------------- Popup Selesai (Lulus / Tidak Lulus)
+    drawFinishPopup(dt) {
+      this.finishAnim = Math.min(1.0, this.finishAnim + dt * 2.5);
+      const ease = 1 - (1 - this.finishAnim) ** 3;
+      const ctx = this.ctx;
+
+      // Confetti update
+      this.particles.forEach(p => p.draw(ctx));
+
+      const popupW = 580;
+      const popupH = Math.min(CANVAS_H - 60, 420 + this.faults.length * 18);
+      const popupX = CANVAS_W / 2 - popupW / 2;
+      const popupY = CANVAS_H / 2 - popupH / 2;
+
+      // Dark Overlay
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.65 * ease})`;
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+      // Panel Box
+      ctx.fillStyle = "rgba(12, 18, 35, 0.95)";
+      ctx.fillRect(popupX, popupY, popupW, popupH);
+      const ok = this.passed;
+      ctx.strokeStyle = ok ? GREEN : RED;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(popupX, popupY, popupW, popupH);
+
+      // Header Box
+      ctx.fillStyle = ok ? "rgba(20, 80, 40, 0.9)" : "rgba(80, 20, 20, 0.9)";
+      ctx.fillRect(popupX + 2, popupY + 2, popupW - 4, 65);
+
+      ctx.textAlign = "center";
+      ctx.font = "bold 38px Segoe UI, sans-serif";
+      ctx.fillStyle = ok ? GREEN : RED;
+      ctx.fillText(ok ? "🏆  LULUS UJI PRAKTIK!" : "✗  BELUM LULUS", CANVAS_W / 2, popupY + 46);
+
+      let py = popupY + 100;
+      const sc = this.score;
+      const scCol = sc >= 80 ? GREEN : (sc >= 70 ? YELLOW : RED);
+      ctx.font = "bold 26px Segoe UI, sans-serif";
+      ctx.fillStyle = scCol;
+      ctx.fillText(`Skor Akhir: ${sc} / 100`, CANVAS_W / 2, py);
+
+      py += 24;
+      const barW = 420;
+      ctx.fillStyle = "#1e233c";
+      ctx.fillRect(CANVAS_W / 2 - barW / 2, py, barW, 16);
+      ctx.fillStyle = scCol;
+      ctx.fillRect(CANVAS_W / 2 - barW / 2, py, barW * (sc / 100), 16);
+
+      // Garis threshold 70
+      const threshX = CANVAS_W / 2 - barW / 2 + barW * 0.7;
+      ctx.strokeStyle = YELLOW;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(threshX, py - 3); ctx.lineTo(threshX, py + 19);
+      ctx.stroke();
+
+      py += 36;
+      const mm = String(Math.floor(this.time / 60)).padStart(2, '0');
+      const ss = String(Math.floor(this.time % 60)).padStart(2, '0');
+      ctx.font = "18px Segoe UI, sans-serif";
+      ctx.fillStyle = "#b4d2ff";
+      ctx.fillText(`⏱ Waktu Tempuh: ${mm}:${ss}`, CANVAS_W / 2, py);
+
+      py += 30;
+      if (this.faults.length > 0) {
+        ctx.font = "bold 15px Segoe UI, sans-serif";
+        ctx.fillStyle = "#ffb464";
+        ctx.textAlign = "left";
+        ctx.fillText(`Daftar Pelanggaran (${this.faults.length}):`, popupX + 32, py);
+        py += 20;
+
+        ctx.font = "13px Consolas, monospace";
+        ctx.fillStyle = "#ff968c";
+        const maxShow = Math.min(this.faults.length, 5);
+        for (let i = 0; i < maxShow; i++) {
+          ctx.fillText(` • -${this.faults[i].pts} poin  ${this.faults[i].text}`, popupX + 32, py);
+          py += 18;
+        }
+        if (this.faults.length > maxShow) {
+          ctx.fillText(` ... dan ${this.faults.length - maxShow} pelanggaran lainnya`, popupX + 32, py);
+          py += 18;
+        }
+      } else {
+        ctx.font = "bold 16px Segoe UI, sans-serif";
+        ctx.fillStyle = GREEN;
+        ctx.fillText("✓ Sempurna! Tanpa pelanggaran sama sekali.", CANVAS_W / 2, py);
+        py += 24;
+      }
+
+      // Tombol Selesai
+      const btnY = popupY + popupH - 62;
+      this.finishPlayBtn = { x: CANVAS_W / 2 - 210, y: btnY, w: 190, h: 46 };
+      this.finishMenuBtn = { x: CANVAS_W / 2 + 20, y: btnY, w: 190, h: 46 };
+
+      ctx.fillStyle = "#288c46";
+      ctx.fillRect(this.finishPlayBtn.x, this.finishPlayBtn.y, this.finishPlayBtn.w, this.finishPlayBtn.h);
+      ctx.strokeStyle = "#50dc78";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(this.finishPlayBtn.x, this.finishPlayBtn.y, this.finishPlayBtn.w, this.finishPlayBtn.h);
+
+      ctx.fillStyle = "#192850";
+      ctx.fillRect(this.finishMenuBtn.x, this.finishMenuBtn.y, this.finishMenuBtn.w, this.finishMenuBtn.h);
+      ctx.strokeStyle = "#5078dc";
+      ctx.strokeRect(this.finishMenuBtn.x, this.finishMenuBtn.y, this.finishMenuBtn.w, this.finishMenuBtn.h);
+
+      ctx.textAlign = "center";
+      ctx.font = "bold 18px Segoe UI, sans-serif";
+      ctx.fillStyle = WHITE;
+      ctx.fillText("▶  MAIN LAGI", this.finishPlayBtn.x + this.finishPlayBtn.w / 2, btnY + 29);
+      ctx.fillStyle = "#a0c8ff";
+      ctx.fillText("⌂  KE MENU", this.finishMenuBtn.x + this.finishMenuBtn.w / 2, btnY + 29);
+    }
+
+    // ----------------- Game Loop
+    loop(timestamp) {
+      if (!this.lastTime) this.lastTime = timestamp;
+      let dt = (timestamp - this.lastTime) / 1000.0;
+      this.lastTime = timestamp;
+      if (dt > 0.1) dt = 1 / 60;
+
+      if (this.state === STATE_MENU) {
+        this.drawMenu(dt);
+      } else if (this.state === STATE_COUNTDOWN) {
+        this.drawCountdown(dt);
+      } else if (this.state === STATE_PLAYING) {
+        this.update(dt);
+        this.updateCamera();
+
+        this.ctx.fillStyle = BG_COLOR;
+        this.ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        this.drawRoad();
+        this.drawMarkings();
+        this.drawCones();
+        this.drawMotor();
+
+        this.particles.forEach(p => p.draw(this.ctx));
+        this.drawHUD();
+
+        // Flash Merah saat Kena Patok
+        if (this.flashAlpha > 0) {
+          this.ctx.fillStyle = `rgba(230, 40, 40, ${this.flashAlpha})`;
+          this.ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        }
+      } else if (this.state === STATE_FINISHED) {
+        this.updateCamera();
+        this.ctx.fillStyle = BG_COLOR;
+        this.ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        this.drawRoad();
+        this.drawMarkings();
+        this.drawCones();
+        this.drawMotor();
+        this.drawHUD();
+
+        this.drawFinishPopup(dt);
+      }
+
+      requestAnimationFrame(ts => this.loop(ts));
+    }
+
+    start() {
+      requestAnimationFrame(ts => this.loop(ts));
+    }
+  }
+
+  // Inisialisasi Responsive Canvas
+  const canvas = document.getElementById('gameCanvas');
+  function resizeCanvas() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const scale = Math.min(w / CANVAS_W, h / CANVAS_H);
+    canvas.style.width = `${Math.floor(CANVAS_W * scale)}px`;
+    canvas.style.height = `${Math.floor(CANVAS_H * scale)}px`;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  const game = new Game(canvas);
+  game.start();
+})();
+</script>
+</body>
+</html>
