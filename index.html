@@ -998,7 +998,7 @@
   </div>
 
   <!-- Responsive Touch Controls (Fixed above mobile gesture bar) -->
-  <div id="touch-controls">
+  <div id="touch-controls" style="display:none">
     <!-- Left Hand: Steer Left & Right -->
     <div class="touch-cluster">
       <button class="touch-btn" id="btn-left" aria-label="Belok Kiri">◀</button>
@@ -1764,13 +1764,9 @@
       this.dom.countdownOverlay.classList.toggle('active', newState === STATE_COUNTDOWN);
       this.dom.hudOverlay.classList.toggle('active', newState === STATE_PLAYING);
       this.dom.finishScreen.classList.toggle('active', newState === STATE_FINISHED);
-      const touchEl = document.querySelector('#touch-controls, .touch-controls');
+      const touchEl = document.getElementById('touch-controls');
       if (touchEl) {
-        if (newState === STATE_PLAYING) {
-          touchEl.classList.add('is-playing');
-        } else {
-          touchEl.classList.remove('is-playing');
-        }
+        touchEl.style.display = (newState === STATE_PLAYING) ? 'flex' : 'none';
       }
 
       if (newState === STATE_COUNTDOWN) {
