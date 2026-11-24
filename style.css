@@ -1,0 +1,1004 @@
+/* ==========================================================
+   RESET & BASE THEME (Midnight Navy, Cloud White, Electric Lime)
+   ========================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+:root {
+  --navy: #102c40;
+  --navy-dark: #0a1d2b;
+  --navy-card: rgba(16, 44, 64, 0.94);
+  --navy-panel: #163a54;
+  --navy-border: #2a5c80;
+  --white: #f7fafc;
+  --white-muted: #cbd5e1;
+  --lime: #dbff00;
+  --lime-dark: #9cb800;
+  --lime-glow: rgba(219, 255, 0, 0.45);
+  --danger: #ef4444;
+  --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-silk: 'Silkscreen', monospace;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: var(--navy);
+  font-family: var(--font-main);
+  color: var(--white);
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* 60FPS Fullscreen Canvas */
+#gameCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #0f1423;
+  z-index: 1;
+}
+
+/* Flash Merah saat keluar jalur / tabrakan */
+#flash-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(239, 68, 68, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+  z-index: 10;
+}
+
+/* ==========================================================
+   ANIMASI GLOBAL TOMBOL (Mengecil Saat Ditekan + Efek Glow Lime)
+   ========================================================== */
+button, .btn-primary, .btn-secondary, .level-btn, .hud-action-btn, .touch-btn {
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.18s ease,
+              background-color 0.18s ease,
+              border-color 0.18s ease !important;
+}
+
+button:hover, .level-btn:hover, .hud-action-btn:hover {
+  box-shadow: 0 0 16px var(--lime-glow);
+}
+
+button:active, .btn-primary:active, .btn-secondary:active,
+.level-btn:active, .hud-action-btn:active, .touch-btn:active, .touch-btn.pressed {
+  transform: scale(0.92) !important;
+  box-shadow: 0 0 24px rgba(219, 255, 0, 0.85), inset 0 0 8px rgba(247, 250, 252, 0.3) !important;
+}
+
+.btn-brake:active, .btn-brake.pressed {
+  box-shadow: 0 0 22px rgba(248, 113, 113, 0.9) !important;
+}
+
+/* ==========================================================
+   OVERLAY SCREENS (Menu, Countdown, Finish, HUD)
+   ========================================================== */
+.overlay-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  display: none;
+}
+.overlay-screen.active {
+  display: flex;
+  pointer-events: auto;
+}
+
+/* ==========================================================
+   START MENU (Midnight Navy + Cloud White + Electric Lime)
+   ========================================================== */
+#menu-screen {
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 2.5vw, 22px);
+  background-color: var(--navy);
+  background-image:
+    linear-gradient(to right, rgba(247, 250, 252, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(247, 250, 252, 0.05) 1px, transparent 1px),
+    radial-gradient(circle at 20% 20%, rgba(219, 255, 0, 0.08) 0%, transparent 38%),
+    radial-gradient(circle at 80% 78%, rgba(42, 92, 128, 0.35) 0%, transparent 45%);
+  background-size: 24px 24px, 24px 24px, 100% 100%, 100% 100%;
+  overflow-y: auto;
+}
+
+/* Ornamen Bintang & Awan Pixel Mengambang */
+.pixel-bg-decor {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.px-star {
+  position: absolute;
+  color: var(--lime);
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  text-shadow: 0 0 10px var(--lime-glow);
+  animation: twinkleStar 2.4s ease-in-out infinite alternate;
+}
+@keyframes twinkleStar {
+  0% { transform: scale(0.85); opacity: 0.45; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+.px-cloud {
+  position: absolute;
+  width: 90px;
+  height: 14px;
+  background: rgba(247, 250, 252, 0.08);
+  box-shadow: 18px -10px 0 0 rgba(247, 250, 252, 0.08), -14px -6px 0 0 rgba(247, 250, 252, 0.06);
+}
+
+/* Kartu Jendela Browser Retro */
+.pixel-window {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 650px;
+  background: var(--navy-dark);
+  border: 2px solid var(--navy-border);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(219, 255, 0, 0.15);
+  overflow: hidden;
+  margin: auto;
+  max-height: 95dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pixel-window-bar {
+  background: var(--navy);
+  border-bottom: 2px solid var(--navy-border);
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.win-dots {
+  display: flex;
+  gap: 7px;
+}
+.win-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.win-dot.red { background: #ef4444; }
+.win-dot.lime { background: var(--lime); }
+.win-dot.white { background: var(--white); }
+.win-status {
+  font-family: var(--font-silk);
+  font-size: 10px;
+  color: var(--lime);
+  letter-spacing: 0.8px;
+}
+
+.menu-card {
+  width: 100%;
+  background: transparent;
+  padding: clamp(14px, 3vw, 24px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2vw, 14px);
+  overflow-y: auto;
+}
+
+.menu-badge {
+  display: inline-block;
+  align-self: center;
+  font-family: var(--font-silk);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--lime);
+  background: rgba(219, 255, 0, 0.1);
+  border: 1px solid rgba(219, 255, 0, 0.4);
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.menu-title {
+  font-family: var(--font-pixel);
+  font-size: clamp(17px, 4vw, 25px);
+  font-weight: 400;
+  color: var(--white);
+  text-shadow: 3px 3px 0px #06131c, 0 0 18px rgba(247, 250, 252, 0.2);
+  line-height: 1.45;
+}
+
+.menu-subtitle {
+  font-size: clamp(11.5px, 2.4vw, 13.5px);
+  color: var(--white-muted);
+  margin-top: -4px;
+}
+
+/* Showcase Pulau Pixel Art SIM C */
+.pixel-island-showcase {
+  width: 100%;
+  max-width: 380px;
+  height: clamp(135px, 24vh, 175px);
+  margin: 0 auto;
+  background: radial-gradient(circle at center, rgba(22, 58, 84, 0.75) 0%, rgba(10, 29, 43, 0.4) 75%, transparent 100%);
+  border: 1.5px solid var(--navy-border);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: inset 0 0 20px rgba(16, 44, 64, 0.9);
+  animation: islandFloat 3.2s ease-in-out infinite alternate;
+}
+@keyframes islandFloat {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-4px); }
+}
+
+.px-rider-bob {
+  animation: riderBob 0.6s steps(2, end) infinite;
+}
+@keyframes riderBob {
+  0% { transform: translate(148px, 60px); }
+  50% { transform: translate(148px, 59px); }
+  100% { transform: translate(148px, 60px); }
+}
+
+.level-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.section-label, .guide-title {
+  font-family: var(--font-silk);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--lime);
+  margin-bottom: 4px;
+}
+.level-btn-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.level-btn {
+  background: var(--navy);
+  border: 2px solid var(--navy-border);
+  border-radius: 8px;
+  padding: 9px 6px;
+  color: var(--white);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.level-btn:hover {
+  background: var(--navy-panel);
+  border-color: var(--lime);
+}
+.level-btn.active {
+  background: var(--navy-panel);
+  border-color: var(--lime);
+  box-shadow: 0 0 14px var(--lime-glow);
+}
+
+.lvl-title {
+  font-family: var(--font-silk);
+  font-weight: 700;
+  font-size: clamp(11px, 2.3vw, 13px);
+  color: var(--white);
+}
+.lvl-desc { font-size: 10px; color: var(--white-muted); }
+
+/* Tombol Utama Electric Lime */
+.btn-primary {
+  background: var(--lime);
+  color: var(--navy);
+  border: 2px solid var(--white);
+  border-radius: 6px;
+  padding: clamp(12px, 2.8vw, 15px) 22px;
+  font-family: var(--font-silk);
+  font-size: clamp(13px, 3vw, 16px);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--lime-dark), 0 0 20px var(--lime-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.btn-primary:hover {
+  background: #e6ff47;
+  box-shadow: 0 4px 0 var(--lime-dark), 0 0 28px rgba(219, 255, 0, 0.75);
+}
+.btn-primary:active {
+  box-shadow: 0 1px 0 var(--lime-dark), 0 0 24px rgba(219, 255, 0, 0.9) !important;
+}
+
+.controls-guide-box, .history-box {
+  background: rgba(16, 44, 64, 0.65);
+  border: 1.5px solid var(--navy-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--white-muted);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.history-count-badge {
+  font-family: var(--font-silk);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--navy);
+  background: var(--lime);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 110px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.history-empty {
+  font-size: 11.5px;
+  color: var(--white-muted);
+  text-align: center;
+  padding: 6px 0;
+  font-style: italic;
+}
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--navy-dark);
+  border: 1px solid var(--navy-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.history-item.pass { border-left: 3px solid var(--lime); }
+.history-item.fail { border-left: 3px solid var(--danger); }
+.hist-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hist-badge {
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--lime);
+}
+.hist-level {
+  font-size: 11px;
+  color: var(--white);
+}
+.hist-time {
+  font-size: 10.5px;
+  color: var(--white-muted);
+  font-family: var(--font-mono);
+}
+.hist-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hist-score {
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+.hist-status {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.status-pass { color: var(--navy); background: var(--lime); }
+.status-fail { color: var(--white); background: rgba(239, 68, 68, 0.35); border: 1px solid var(--danger); }
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 4px 12px;
+  font-size: 11.5px;
+  color: var(--white);
+}
+.guide-grid kbd {
+  background: var(--navy-panel);
+  border: 1px solid var(--lime);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--lime);
+}
+.mobile-note {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--lime);
+  text-align: center;
+}
+
+/* ==========================================================
+   COUNTDOWN OVERLAY (Retro Pixel Arcade Style)
+   ========================================================== */
+#countdown-overlay {
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 44, 64, 0.65);
+  backdrop-filter: blur(2px);
+}
+#countdown-number {
+  font-family: var(--font-pixel);
+  font-size: clamp(64px, 16vw, 120px);
+  color: var(--lime);
+  text-shadow: 5px 5px 0 #06131c, 0 0 30px var(--lime-glow);
+  animation: popBounce 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
+}
+@keyframes popBounce {
+  0% { transform: scale(0.6); opacity: 0; }
+  50% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.85; }
+}
+
+/* ==========================================================
+   HUD OVERLAY (Pixel Arcade Window Style: Navy, White, Lime)
+   ========================================================== */
+#hud-overlay {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  padding: clamp(8px, 2vw, 16px);
+  padding-top: max(8px, env(safe-area-inset-top));
+}
+
+/* Top Progress Bar (Pixel Block Bar) */
+.progress-container {
+  width: 100%;
+  height: 18px;
+  background: var(--navy-dark);
+  border: 2px solid var(--white);
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 #06131c;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--lime) 0px,
+    var(--lime) 12px,
+    #b8d600 12px,
+    #b8d600 16px
+  );
+  border-radius: 0;
+  transition: width 0.1s linear;
+}
+.progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-silk);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--white);
+  text-shadow: 1px 1px 0 #06131c, -1px -1px 0 #06131c, 1px -1px 0 #06131c, -1px 1px 0 #06131c;
+}
+
+/* Top Stats Pills (Kotak HUD Pixel) */
+.hud-top-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.hud-pill {
+  background: var(--navy);
+  border: 2px solid var(--white);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 #06131c;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-silk);
+  font-size: clamp(10px, 2vw, 12px);
+  pointer-events: auto;
+}
+.hud-label { color: var(--white-muted); font-size: 10px; }
+.hud-value { font-weight: 700; color: var(--white); }
+.hud-subvalue { font-size: 11px; color: var(--lime); font-weight: 700; }
+
+.hud-action-btn {
+  background: var(--navy-panel);
+  border: 2px solid var(--lime);
+  color: var(--lime);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 #06131c;
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 2px;
+  touch-action: manipulation;
+}
+.hud-action-btn:hover {
+  background: var(--lime);
+  color: var(--navy);
+}
+
+.score-good { color: var(--lime) !important; }
+.score-warn { color: #fbbf24 !important; }
+.score-bad  { color: var(--danger) !important; }
+
+/* Alert Banner (REM! Kotak Kuning / Lajur Ditutup) */
+.alert-banner {
+  align-self: center;
+  margin-top: 12px;
+  background: var(--navy);
+  border: 2.5px solid var(--lime);
+  color: var(--lime);
+  font-family: var(--font-silk);
+  font-weight: 700;
+  font-size: clamp(12px, 3vw, 16px);
+  letter-spacing: 0.5px;
+  padding: 9px 18px;
+  border-radius: 4px;
+  box-shadow: 4px 4px 0 #06131c, 0 0 18px var(--lime-glow);
+  animation: alertPulse 0.8s ease-in-out infinite alternate;
+  display: none;
+  text-align: center;
+}
+@keyframes alertPulse {
+  from { transform: scale(0.98); }
+  to { transform: scale(1.02); }
+}
+
+/* Toast Notifications Container */
+#toast-container {
+  position: absolute;
+  top: 94px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+  z-index: 50;
+  width: 90%;
+  max-width: 420px;
+}
+.toast-msg {
+  background: var(--navy-dark);
+  border: 2px solid var(--lime);
+  color: var(--white);
+  font-family: var(--font-silk);
+  font-weight: 700;
+  font-size: clamp(10.5px, 2.3vw, 12.5px);
+  padding: 7px 14px;
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 #06131c;
+  animation: toastIn 0.2s ease-out;
+  text-align: center;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Matrix Transform Card (Jendela Pixel Kiri Bawah / Atas HP) */
+.matrix-card {
+  position: absolute;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: max(16px, env(safe-area-inset-left));
+  background: var(--navy);
+  border: 2px solid var(--lime);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 11px;
+  max-width: 330px;
+  pointer-events: auto;
+  box-shadow: 4px 4px 0 #06131c, 0 0 16px rgba(16, 44, 64, 0.8);
+  display: none;
+}
+.matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid var(--navy-border);
+  font-family: var(--font-silk);
+  font-weight: 700;
+  color: var(--lime);
+  font-size: 10.5px;
+}
+.matrix-code {
+  font-family: var(--font-mono);
+  line-height: 1.4;
+  color: var(--white);
+  font-size: 10.5px;
+}
+.icon-btn {
+  background: var(--navy-panel);
+  border: 1px solid var(--white);
+  border-radius: 2px;
+  color: var(--white);
+  cursor: pointer;
+  font-family: var(--font-silk);
+  font-size: 10px;
+  padding: 1px 5px;
+}
+.icon-btn:hover {
+  background: var(--lime);
+  color: var(--navy);
+  border-color: var(--lime);
+}
+
+/* ==========================================================
+   TOUCH CONTROLS (Retro Pixel Arcade Buttons)
+   ========================================================== */
+#touch-controls {
+  display: none;
+  position: fixed;
+  bottom: max(16px, calc(env(safe-area-inset-bottom) + 12px));
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.touch-cluster {
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+  align-items: flex-end;
+}
+
+.touch-btn {
+  width: clamp(54px, 12vw, 66px);
+  height: clamp(54px, 12vw, 66px);
+  border-radius: 6px;
+  background: var(--navy);
+  border: 2.5px solid var(--white);
+  color: var(--white);
+  font-family: var(--font-silk);
+  font-weight: 700;
+  font-size: clamp(16px, 4vw, 22px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 0 #06131c, 0 6px 14px rgba(0, 0, 0, 0.55);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.touch-btn:active, .touch-btn.pressed {
+  background: var(--navy-panel);
+  border-color: var(--lime);
+  color: var(--lime);
+  box-shadow: 0 1px 0 #06131c, 0 0 20px var(--lime-glow) !important;
+}
+
+.btn-gas {
+  background: var(--lime);
+  border-color: var(--white);
+  color: var(--navy);
+  width: clamp(62px, 14vw, 74px);
+  height: clamp(62px, 14vw, 74px);
+  font-size: clamp(12px, 3.2vw, 15px);
+  box-shadow: 0 4px 0 var(--lime-dark), 0 6px 16px rgba(0, 0, 0, 0.55);
+}
+.btn-gas:active, .btn-gas.pressed {
+  background: #e6ff47;
+  border-color: var(--white);
+  color: var(--navy);
+  box-shadow: 0 1px 0 var(--lime-dark), 0 0 24px rgba(219, 255, 0, 0.9) !important;
+}
+
+.btn-brake {
+  background: #dc2626;
+  border-color: var(--white);
+  color: var(--white);
+  width: clamp(58px, 13vw, 68px);
+  height: clamp(58px, 13vw, 68px);
+  font-size: clamp(11.5px, 3vw, 14px);
+  box-shadow: 0 4px 0 #7f1d1d, 0 6px 16px rgba(0, 0, 0, 0.55);
+}
+.btn-brake:active, .btn-brake.pressed {
+  background: #ef4444;
+  border-color: var(--white);
+  box-shadow: 0 1px 0 #7f1d1d, 0 0 22px rgba(248, 113, 113, 0.9) !important;
+}
+
+.btn-foot {
+  width: clamp(48px, 10vw, 56px);
+  height: clamp(48px, 10vw, 56px);
+  background: var(--navy);
+  border-color: var(--lime);
+  color: var(--lime);
+  font-size: clamp(9.5px, 2.3vw, 11px);
+  box-shadow: 0 4px 0 #06131c;
+}
+.btn-foot:active, .btn-foot.pressed {
+  background: var(--lime);
+  color: var(--navy);
+}
+
+/* ==========================================================
+   FINISH MODAL DIALOG (Retro Pixel Window Style)
+   ========================================================== */
+#finish-screen {
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 29, 43, 0.85);
+  backdrop-filter: blur(6px);
+  padding: 16px;
+  overflow-y: auto;
+}
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--navy);
+  border: 2.5px solid var(--white);
+  border-radius: 8px;
+  padding: clamp(20px, 5vw, 28px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  box-shadow: 6px 6px 0 #06131c, 0 20px 50px rgba(0, 0, 0, 0.8);
+  margin: auto;
+  max-height: 94dvh;
+  overflow-y: auto;
+}
+.modal-card.pass {
+  border-color: var(--lime);
+  box-shadow: 6px 6px 0 #06131c, 0 0 36px var(--lime-glow);
+}
+.modal-card.fail {
+  border-color: var(--danger);
+  box-shadow: 6px 6px 0 #06131c, 0 0 36px rgba(239, 68, 68, 0.35);
+}
+
+.result-icon { font-size: clamp(38px, 8vw, 54px); line-height: 1; }
+.result-title {
+  font-family: var(--font-pixel);
+  font-size: clamp(15px, 3.6vw, 21px);
+  line-height: 1.45;
+  color: var(--white);
+  text-shadow: 2px 2px 0 #06131c;
+}
+.pass .result-title { color: var(--lime); }
+.fail .result-title { color: var(--danger); }
+
+.score-summary-box {
+  background: var(--navy-dark);
+  border: 2px solid var(--navy-border);
+  border-radius: 6px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.score-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+}
+.score-main .label {
+  font-family: var(--font-silk);
+  font-size: 11px;
+  color: var(--white-muted);
+}
+.score-digit {
+  font-family: var(--font-pixel);
+  font-size: clamp(26px, 6.5vw, 36px);
+  color: var(--lime);
+  text-shadow: 2px 2px 0 #06131c;
+}
+.score-max {
+  font-family: var(--font-silk);
+  font-size: 15px;
+  color: var(--white-muted);
+}
+
+.score-bar-track {
+  width: 100%;
+  height: 14px;
+  background: var(--navy-panel);
+  border: 1.5px solid var(--white);
+  border-radius: 2px;
+  position: relative;
+  overflow: visible;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 0;
+  background: var(--lime);
+  transition: width 0.6s ease;
+}
+.threshold-line {
+  position: absolute;
+  left: 70%;
+  top: -4px;
+  bottom: -4px;
+  width: 2.5px;
+  background: var(--white);
+}
+
+.score-legend {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-silk);
+  font-size: 10px;
+  color: var(--white-muted);
+}
+
+.faults-list-box {
+  text-align: left;
+  background: var(--navy-dark);
+  border: 2px solid var(--navy-border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  max-height: 130px;
+  overflow-y: auto;
+}
+.faults-title {
+  font-family: var(--font-silk);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--lime);
+  margin-bottom: 6px;
+}
+#finish-faults-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--white);
+}
+
+/* Modal History Chips */
+.history-preview-box {
+  background: var(--navy-dark);
+  border: 2px solid var(--navy-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 11px;
+  text-align: left;
+}
+.preview-title {
+  font-family: var(--font-silk);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--lime);
+  margin-bottom: 5px;
+}
+.preview-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.preview-chip {
+  background: var(--navy);
+  border: 1.5px solid var(--navy-border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-family: var(--font-silk);
+  font-size: 10px;
+  color: var(--white);
+}
+.preview-chip.pass { border-color: var(--lime); color: var(--lime); }
+.preview-chip.fail { border-color: var(--danger); color: #fca5a5; }
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.btn-secondary {
+  background: var(--navy-panel);
+  border: 2px solid var(--white);
+  color: var(--white);
+  border-radius: 6px;
+  padding: 12px 18px;
+  font-family: var(--font-silk);
+  font-size: clamp(12px, 2.8vw, 15px);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #06131c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-secondary:hover {
+  background: var(--navy-dark);
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+/* ==========================================================
+   PENYESUAIAN RESPONSIF HP & TABLET
+   ========================================================== */
+@media (max-width: 1100px), (pointer: coarse) {
+  .hud-top-bar {
+    position: fixed !important;
+    top: 40px !important;
+    bottom: auto !important;
+    left: 8px !important;
+    right: 8px !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    z-index: 40;
+  }
+  .hud-top-bar .hud-pill {
+    padding: 4px 9px;
+    font-size: 10px;
+  }
+  .matrix-card {
+    top: 94px !important;
+    bottom: auto !important;
+    left: 10px !important;
+    right: auto !important;
+    z-index: 45;
+  }
+  #touch-controls,
+  .touch-controls {
+    bottom: 14px !important;
+    z-index: 50;
+  }
+}
