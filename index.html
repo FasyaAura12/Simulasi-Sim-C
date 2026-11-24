@@ -88,126 +88,132 @@
           <span class="win-dot lime"></span>
           <span class="win-dot white"></span>
         </div>
-        <span class="win-status">SIMULASI_SIM_C.EXE</span>
+        <span class="win-status">Transformasi Geometri</span>
       </div>
 
       <div class="menu-card">
-        <div class="menu-badge">TRANSFORMASI GEOMETRI • WEB EDITION</div>
-        <h1 class="menu-title">UJI PRAKTIK<br>SIM C</h1>
-        <p class="menu-subtitle">Uji ketangkasan pengereman, U-turn, lintasan huruf S, dan reaksi menghindar berbasis matriks transformasi 3x3.</p>
+        <h1 class="menu-title">Simulasi Uji Praktik<br>Sim C</h1>
+        <p class="menu-subtitle">Uji ketangkasan pengereman, U-turn, lintasan huruf S, dan reaksi menghindar berbasis matriks 3 &times; 3</p>
 
         <!-- Ilustrasi Pulau Pixel Art: Lintasan SIM C, Rambu, Marka, Pengendara Motor & Polisi -->
         <div class="pixel-island-showcase" aria-hidden="true">
           <svg viewBox="0 0 320 176" width="100%" height="100%" shape-rendering="crispEdges">
-            <!-- Bintang & Awan Kecil di Sekitar Pulau -->
-            <rect x="28" y="18" width="4" height="4" fill="#dbff00"/>
-            <rect x="26" y="20" width="8" height="2" fill="#dbff00"/>
-            <rect x="28" y="16" width="2" height="10" fill="#dbff00"/>
-            <rect x="286" y="24" width="4" height="4" fill="#dbff00"/>
-            <rect x="284" y="26" width="8" height="2" fill="#dbff00"/>
-            <rect x="286" y="22" width="2" height="10" fill="#dbff00"/>
+            <defs>
+              <!-- Klip agar lintasan selalu tetap di dalam batas rumput pulau -->
+              <clipPath id="island-grass-clip">
+                <polygon points="160,42 280,96 160,150 40,96"/>
+              </clipPath>
+            </defs>
+
+            <!-- Bintang / Kilau Matahari di Langit -->
+            <rect x="28" y="18" width="4" height="4" fill="#fde047"/>
+            <rect x="26" y="20" width="8" height="2" fill="#fde047"/>
+            <rect x="28" y="16" width="2" height="10" fill="#fde047"/>
+            <rect x="286" y="24" width="4" height="4" fill="#fde047"/>
+            <rect x="284" y="26" width="8" height="2" fill="#fde047"/>
+            <rect x="286" y="22" width="2" height="10" fill="#fde047"/>
 
             <!-- Pulau Melayang Kecil Kiri -->
-            <polygon points="22,102 48,92 66,104 42,114" fill="#2e7d32"/>
-            <polygon points="22,102 42,114 42,126 26,114" fill="#6d4c41"/>
-            <polygon points="42,114 66,104 60,118 42,126" fill="#4e342e"/>
+            <polygon points="14,104 40,94 58,106 34,116" fill="#2e7d32"/>
+            <polygon points="14,104 34,116 34,128 18,116" fill="#6d4c41"/>
+            <polygon points="34,116 58,106 52,120 34,128" fill="#4e342e"/>
             <!-- Pohon Pixel Kiri -->
-            <rect x="40" y="88" width="4" height="10" fill="#5d4037"/>
-            <rect x="34" y="78" width="16" height="10" fill="#4ade80"/>
-            <rect x="37" y="72" width="10" height="6" fill="#22c55e"/>
+            <rect x="32" y="90" width="4" height="10" fill="#5d4037"/>
+            <rect x="26" y="80" width="16" height="10" fill="#4ade80"/>
+            <rect x="29" y="74" width="10" height="6" fill="#22c55e"/>
 
             <!-- Pulau Melayang Kecil Kanan -->
-            <polygon points="256,110 282,100 302,112 276,122" fill="#2e7d32"/>
-            <polygon points="256,110 276,122 276,134 260,122" fill="#6d4c41"/>
-            <polygon points="276,122 302,112 296,126 276,134" fill="#4e342e"/>
-            <!-- Cone & Pohon Kecil Kanan -->
-            <rect x="276" y="96" width="4" height="10" fill="#5d4037"/>
-            <rect x="270" y="86" width="16" height="10" fill="#4ade80"/>
-            <rect x="273" y="80" width="10" height="6" fill="#22c55e"/>
+            <polygon points="264,112 290,102 310,114 284,124" fill="#2e7d32"/>
+            <polygon points="264,112 284,124 284,136 268,124" fill="#6d4c41"/>
+            <polygon points="284,124 310,114 304,128 284,136" fill="#4e342e"/>
+            <!-- Pohon Pixel Kanan -->
+            <rect x="284" y="98" width="4" height="10" fill="#5d4037"/>
+            <rect x="278" y="88" width="16" height="10" fill="#4ade80"/>
+            <rect x="281" y="82" width="10" height="6" fill="#22c55e"/>
 
             <!-- ========================================== -->
             <!-- PULAU UTAMA LINTASAN UJI PRAKTIK SIM C      -->
             <!-- ========================================== -->
             <!-- Tebing Tanah Bawah Pulau (Isometric Pixel) -->
-            <polygon points="52,96 160,144 160,170 62,120" fill="#795548"/>
-            <polygon points="160,144 268,96 258,120 160,170" fill="#4e342e"/>
-            <polygon points="78,128 160,170 160,175 94,142" fill="#3e2723"/>
-            <polygon points="242,128 160,170 160,175 226,142" fill="#2b1b17"/>
+            <polygon points="40,96 160,150 160,172 52,122" fill="#795548"/>
+            <polygon points="160,150 280,96 268,122 160,172" fill="#4e342e"/>
+            <polygon points="70,130 160,172 160,176 86,144" fill="#3e2723"/>
+            <polygon points="250,130 160,172 160,176 234,144" fill="#2b1b17"/>
 
             <!-- Permukaan Rumput Hijau Pulau (#2e7d32) -->
-            <polygon points="160,48 268,96 160,144 52,96" fill="#2e7d32"/>
-            <!-- Highlight Pinggiran Rumput -->
-            <polyline points="52,96 160,144 268,96" fill="none" stroke="#4ade80" stroke-width="3"/>
-
-            <!-- Rumpun Rumput Pixel di Lapangan -->
-            <rect x="92" y="94" width="6" height="3" fill="#4ade80"/>
-            <rect x="94" y="91" width="2" height="3" fill="#86efac"/>
-            <rect x="218" y="98" width="6" height="3" fill="#4ade80"/>
-            <rect x="220" y="95" width="2" height="3" fill="#86efac"/>
-            <rect x="156" y="128" width="6" height="3" fill="#4ade80"/>
+            <polygon points="160,42 280,96 160,150 40,96" fill="#2e7d32"/>
 
             <!-- ========================================== -->
             <!-- LINTASAN ASPAL SIM C, MARKA & YELLOW BOX   -->
             <!-- ========================================== -->
-            <!-- Bahu Jalan / Kastin (#384152) -->
-            <path d="M 88,96 L 136,74 C 156,65 178,65 196,74 L 226,88 C 238,94 236,104 222,110 L 176,130 C 162,136 146,134 134,126 L 106,108"
-                  fill="none" stroke="#384152" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-            <!-- Permukaan Aspal Utama (#22252c) -->
-            <path d="M 88,96 L 136,74 C 156,65 178,65 196,74 L 226,88 C 238,94 236,104 222,110 L 176,130 C 162,136 146,134 134,126 L 106,108"
-                  fill="none" stroke="#22252c" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+            <g clip-path="url(#island-grass-clip)">
+              <!-- Bahu Jalan / Kastin (#384152) -->
+              <path d="M 96,94 L 138,75 C 156,67 176,67 192,75 L 218,87 C 228,92 226,101 214,107 L 174,125 C 161,131 147,129 136,122 L 114,108"
+                    fill="none" stroke="#384152" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Permukaan Aspal Utama (#22252c) -->
+              <path d="M 96,94 L 138,75 C 156,67 176,67 192,75 L 218,87 C 228,92 226,101 214,107 L 174,125 C 161,131 147,129 136,122 L 114,108"
+                    fill="none" stroke="#22252c" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
 
-            <!-- Marka Garis Tepi Putih Solid -->
-            <path d="M 88,96 L 136,74 C 156,65 178,65 196,74 L 226,88 C 238,94 236,104 222,110 L 176,130 C 162,136 146,134 134,126 L 106,108"
-                  fill="none" stroke="#ffffff" stroke-width="19" stroke-opacity="0.35" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M 88,96 L 136,74 C 156,65 178,65 196,74 L 226,88 C 238,94 236,104 222,110 L 176,130 C 162,136 146,134 134,126 L 106,108"
-                  fill="none" stroke="#22252c" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Marka Garis Tepi Putih Solid -->
+              <path d="M 96,94 L 138,75 C 156,67 176,67 192,75 L 218,87 C 228,92 226,101 214,107 L 174,125 C 161,131 147,129 136,122 L 114,108"
+                    fill="none" stroke="#ffffff" stroke-width="16" stroke-opacity="0.38" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M 96,94 L 138,75 C 156,67 176,67 192,75 L 218,87 C 228,92 226,101 214,107 L 174,125 C 161,131 147,129 136,122 L 114,108"
+                    fill="none" stroke="#22252c" stroke-width="13.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-            <!-- Marka Tengah Putus-putus Putih -->
-            <path d="M 92,94 L 136,74 C 156,65 178,65 196,74 L 224,87 C 235,93 233,103 220,109 L 176,129 C 162,135 146,133 134,125 L 110,110"
-                  fill="none" stroke="#ffffff" stroke-width="1.6" stroke-dasharray="4 4"/>
+              <!-- Marka Tengah Putus-putus Putih -->
+              <path d="M 99,93 L 138,75 C 156,67 176,67 192,75 L 216,86 C 226,91 224,100 212,106 L 174,124 C 161,130 147,128 136,121 L 117,109"
+                    fill="none" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="4 4"/>
 
-            <!-- Garis START Putih -->
-            <line x1="84" y1="90" x2="94" y2="102" stroke="#ffffff" stroke-width="2.5"/>
+              <!-- Garis START Putih -->
+              <line x1="93" y1="89" x2="101" y2="99" stroke="#ffffff" stroke-width="2.2"/>
 
-            <!-- Yellow Box Pengereman (#fbbf24) -->
-            <polygon points="184,117 204,108 212,116 192,125" fill="rgba(251,191,36,0.35)" stroke="#fbbf24" stroke-width="1.5"/>
-            <line x1="184" y1="117" x2="212" y2="116" stroke="#fbbf24" stroke-width="1"/>
-            <line x1="204" y1="108" x2="192" y2="125" stroke="#fbbf24" stroke-width="1"/>
+              <!-- Yellow Box Pengereman (#fbbf24) -->
+              <polygon points="181,114 198,106 205,113 188,121" fill="rgba(251,191,36,0.38)" stroke="#fbbf24" stroke-width="1.4"/>
+              <line x1="181" y1="114" x2="205" y2="113" stroke="#fbbf24" stroke-width="1"/>
+              <line x1="198" y1="106" x2="188" y2="121" stroke="#fbbf24" stroke-width="1"/>
 
-            <!-- Panah Arah Marka Jalan -->
-            <polygon points="154,131 148,129 150,134" fill="#ffffff"/>
+              <!-- Panah Arah Marka Jalan -->
+              <polygon points="154,126 148,124 150,129" fill="#ffffff"/>
+            </g>
+
+            <!-- Highlight Pinggiran Rumput Pulau -->
+            <polyline points="40,96 160,150 280,96" fill="none" stroke="#4ade80" stroke-width="3"/>
+
+            <!-- Rumpun Rumput Pixel di Lapangan -->
+            <rect x="74" y="96" width="6" height="3" fill="#4ade80"/>
+            <rect x="76" y="93" width="2" height="3" fill="#86efac"/>
+            <rect x="242" y="96" width="6" height="3" fill="#4ade80"/>
+            <rect x="244" y="93" width="2" height="3" fill="#86efac"/>
+            <rect x="157" y="136" width="6" height="3" fill="#4ade80"/>
 
             <!-- ========================================== -->
             <!-- TRAFFIC CONES ORANYE & RAMBU DISHUB 30     -->
             <!-- ========================================== -->
-            <!-- Cones di Tepi Lintasan -->
-            <g transform="translate(114, 72)">
+            <g transform="translate(116, 73)">
               <rect x="-2" y="1" width="5" height="2" fill="#18181b"/>
               <rect x="-1" y="-3" width="3" height="4" fill="#ea580c"/>
               <rect x="-1" y="-1" width="3" height="1" fill="#ffffff"/>
             </g>
-            <g transform="translate(166, 56)">
+            <g transform="translate(166, 58)">
               <rect x="-2" y="1" width="5" height="2" fill="#18181b"/>
               <rect x="-1" y="-3" width="3" height="4" fill="#ea580c"/>
               <rect x="-1" y="-1" width="3" height="1" fill="#ffffff"/>
             </g>
-            <g transform="translate(234, 82)">
+            <g transform="translate(228, 82)">
               <rect x="-2" y="1" width="5" height="2" fill="#18181b"/>
               <rect x="-1" y="-3" width="3" height="4" fill="#ea580c"/>
               <rect x="-1" y="-1" width="3" height="1" fill="#ffffff"/>
             </g>
-            <g transform="translate(132, 132)">
+            <g transform="translate(132, 129)">
               <rect x="-2" y="1" width="5" height="2" fill="#18181b"/>
               <rect x="-1" y="-3" width="3" height="4" fill="#ea580c"/>
               <rect x="-1" y="-1" width="3" height="1" fill="#ffffff"/>
             </g>
 
             <!-- Rambu Lalu Lintas Batas Kecepatan 30 km/jam -->
-            <g transform="translate(104, 62)">
-              <!-- Tiang Rambu -->
-              <rect x="6" y="12" width="2" height="16" fill="#94a3b8"/>
-              <rect x="4" y="27" width="6" height="2" fill="#334155"/>
-              <!-- Lingkaran Merah & Putih Rambu -->
+            <g transform="translate(108, 60)">
+              <rect x="6" y="12" width="2" height="15" fill="#94a3b8"/>
+              <rect x="4" y="26" width="6" height="2" fill="#334155"/>
               <rect x="1" y="0" width="12" height="12" rx="6" fill="#dc2626"/>
               <rect x="3" y="2" width="8" height="8" rx="4" fill="#ffffff"/>
               <text x="7" y="8.2" font-family="'Press Start 2P', monospace" font-size="4.2" fill="#0f172a" text-anchor="middle">30</text>
@@ -217,23 +223,17 @@
             <!-- PENGENDARA MOTOR DI ATAS LINTASAN SIM C    -->
             <!-- ========================================== -->
             <g class="px-rider-bob" transform="translate(148, 60)">
-              <!-- Bayangan Motor -->
               <ellipse cx="12" cy="18" rx="11" ry="3" fill="rgba(0,0,0,0.4)"/>
-              <!-- Roda Belakang & Depan -->
               <rect x="2" y="12" width="6" height="6" rx="3" fill="#18181b"/>
               <rect x="4" y="14" width="2" height="2" fill="#94a3b8"/>
               <rect x="16" y="12" width="6" height="6" rx="3" fill="#18181b"/>
               <rect x="18" y="14" width="2" height="2" fill="#94a3b8"/>
-              <!-- Bodi Motor Merah & Jok -->
               <rect x="4" y="9" width="15" height="4" fill="#dc2626"/>
               <rect x="14" y="7" width="5" height="4" fill="#f87171"/>
               <rect x="6" y="8" width="6" height="2" fill="#1e293b"/>
-              <!-- Sorot Lampu Depan -->
               <polygon points="21,8 30,5 30,12" fill="rgba(254, 240, 138, 0.5)"/>
-              <!-- Pengendara (Jaket Biru & Helm Putih) -->
               <rect x="8" y="3" width="6" height="6" fill="#1e40af"/>
               <rect x="12" y="4" width="4" height="2" fill="#1e40af"/>
-              <!-- Helm Putih & Visor -->
               <rect x="8" y="-3" width="7" height="6" rx="2" fill="#f1f5f9"/>
               <rect x="12" y="-1" width="3" height="2" fill="#0284c7"/>
             </g>
@@ -241,27 +241,21 @@
             <!-- ========================================== -->
             <!-- PETUGAS POLISI BERSERAGAM DI TEPI LINTASAN -->
             <!-- ========================================== -->
-            <g transform="translate(174, 82)">
-              <!-- Bayangan Petugas -->
+            <g transform="translate(172, 81)">
               <ellipse cx="8" cy="24" rx="7" ry="2.5" fill="rgba(0,0,0,0.4)"/>
-              <!-- Sepatu & Celana Cokelat Tua Polisi -->
               <rect x="4" y="21" width="3" height="3" fill="#0f172a"/>
               <rect x="9" y="21" width="3" height="3" fill="#0f172a"/>
               <rect x="4" y="14" width="3" height="7" fill="#4e342e"/>
               <rect x="9" y="14" width="3" height="7" fill="#4e342e"/>
-              <!-- Sabuk Putih & Baju Seragam Cokelat Polisi -->
               <rect x="3" y="7" width="10" height="7" fill="#795548"/>
               <rect x="3" y="12" width="10" height="2" fill="#f7fafc"/>
-              <!-- Lengan & Papan Penilaian Ujian -->
               <rect x="1" y="8" width="2" height="5" fill="#795548"/>
               <rect x="13" y="8" width="2" height="5" fill="#795548"/>
               <rect x="13" y="10" width="5" height="6" fill="#dbff00"/>
               <rect x="14" y="11" width="3" height="1" fill="#102c40"/>
-              <!-- Kepala & Topi Pet Polisi -->
               <rect x="4" y="1" width="8" height="6" fill="#fed7aa"/>
               <rect x="5" y="3" width="1" height="1" fill="#0f172a"/>
               <rect x="9" y="3" width="1" height="1" fill="#0f172a"/>
-              <!-- Topi Pet Cokelat + Lambang Emas + Visor Hitam -->
               <rect x="2" y="-2" width="12" height="3" fill="#5d4037"/>
               <rect x="4" y="-3" width="8" height="2" fill="#4e342e"/>
               <rect x="7" y="-2" width="2" height="1" fill="#dbff00"/>
@@ -289,7 +283,7 @@
         </div>
 
         <button id="btn-start-game" class="btn-primary">
-          <span>▶</span> MULAI SIMULASI
+          <span>▶</span> MULAI
         </button>
 
         <!-- Histori Skor Sesi Ini -->

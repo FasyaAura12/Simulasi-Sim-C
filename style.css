@@ -111,23 +111,23 @@ button:active, .btn-primary:active, .btn-secondary:active,
 }
 
 /* ==========================================================
-   START MENU (Midnight Navy + Cloud White + Electric Lime)
+   START MENU (Outdoor Sky Blue + Floating Island Pixel Theme)
    ========================================================== */
 #menu-screen {
   align-items: center;
   justify-content: center;
   padding: clamp(10px, 2.5vw, 22px);
-  background-color: var(--navy);
+  background-color: #38bdf8;
   background-image:
-    linear-gradient(to right, rgba(247, 250, 252, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(247, 250, 252, 0.05) 1px, transparent 1px),
-    radial-gradient(circle at 20% 20%, rgba(219, 255, 0, 0.08) 0%, transparent 38%),
-    radial-gradient(circle at 80% 78%, rgba(42, 92, 128, 0.35) 0%, transparent 45%);
-  background-size: 24px 24px, 24px 24px, 100% 100%, 100% 100%;
+    linear-gradient(to bottom, #0284c7 0%, #38bdf8 45%, #7dd3fc 80%, #bae6fd 100%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-blend-mode: normal, overlay, overlay;
+  background-size: 100% 100%, 24px 24px, 24px 24px;
   overflow-y: auto;
 }
 
-/* Ornamen Bintang & Awan Pixel Mengambang */
+/* Ornamen Matahari Pixel & Awan Putih Melayang di Langit */
 .pixel-bg-decor {
   position: fixed;
   inset: 0;
@@ -137,44 +137,56 @@ button:active, .btn-primary:active, .btn-secondary:active,
 }
 .px-star {
   position: absolute;
-  color: var(--lime);
+  color: #fde047;
   font-family: var(--font-pixel);
-  font-size: 13px;
-  text-shadow: 0 0 10px var(--lime-glow);
+  font-size: 14px;
+  text-shadow: 2px 2px 0 #ca8a04, 0 0 12px rgba(253, 224, 71, 0.9);
   animation: twinkleStar 2.4s ease-in-out infinite alternate;
 }
 @keyframes twinkleStar {
-  0% { transform: scale(0.85); opacity: 0.45; }
+  0% { transform: scale(0.85); opacity: 0.65; }
   100% { transform: scale(1.15); opacity: 1; }
 }
 .px-cloud {
   position: absolute;
-  width: 90px;
-  height: 14px;
-  background: rgba(247, 250, 252, 0.08);
-  box-shadow: 18px -10px 0 0 rgba(247, 250, 252, 0.08), -14px -6px 0 0 rgba(247, 250, 252, 0.06);
+  width: 110px;
+  height: 18px;
+  background: #ffffff;
+  box-shadow:
+    22px -12px 0 0 #ffffff,
+    -18px -8px 0 0 #ffffff,
+    0 4px 0 0 #bae6fd,
+    22px -8px 0 0 #bae6fd,
+    -18px -4px 0 0 #bae6fd;
+  opacity: 0.92;
+  animation: driftCloud 18s linear infinite alternate;
+}
+@keyframes driftCloud {
+  0% { transform: translateX(-12px); }
+  100% { transform: translateX(18px); }
 }
 
-/* Kartu Jendela Browser Retro */
+/* Kartu Jendela Browser Retro Outdoor */
 .pixel-window {
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 650px;
-  background: var(--navy-dark);
-  border: 2px solid var(--navy-border);
+  background: rgba(240, 249, 255, 0.92);
+  border: 3px solid #0369a1;
   border-radius: 12px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(219, 255, 0, 0.15);
+  box-shadow: 6px 6px 0 #075985, 0 20px 50px rgba(3, 105, 161, 0.35);
   overflow: hidden;
   margin: auto;
   max-height: 95dvh;
   display: flex;
   flex-direction: column;
+  backdrop-filter: blur(6px);
 }
 
 .pixel-window-bar {
-  background: var(--navy);
-  border-bottom: 2px solid var(--navy-border);
+  background: #0284c7;
+  border-bottom: 3px solid #0369a1;
   padding: 9px 14px;
   display: flex;
   align-items: center;
@@ -188,6 +200,7 @@ button:active, .btn-primary:active, .btn-secondary:active,
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  border: 1.5px solid #0c4a6e;
 }
 .win-dot.red { background: #ef4444; }
 .win-dot.lime { background: var(--lime); }
@@ -195,7 +208,8 @@ button:active, .btn-primary:active, .btn-secondary:active,
 .win-status {
   font-family: var(--font-silk);
   font-size: 10px;
-  color: var(--lime);
+  font-weight: 700;
+  color: var(--white);
   letter-spacing: 0.8px;
 }
 
@@ -217,44 +231,46 @@ button:active, .btn-primary:active, .btn-secondary:active,
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: var(--lime);
-  background: rgba(219, 255, 0, 0.1);
-  border: 1px solid rgba(219, 255, 0, 0.4);
+  color: #0c4a6e;
+  background: #fde047;
+  border: 2px solid #ca8a04;
   padding: 4px 12px;
   border-radius: 4px;
+  box-shadow: 2px 2px 0 #a16207;
 }
 
 .menu-title {
   font-family: var(--font-pixel);
   font-size: clamp(17px, 4vw, 25px);
   font-weight: 400;
-  color: var(--white);
-  text-shadow: 3px 3px 0px #06131c, 0 0 18px rgba(247, 250, 252, 0.2);
+  color: #0c4a6e;
+  text-shadow: 3px 3px 0px #bae6fd;
   line-height: 1.45;
 }
 
 .menu-subtitle {
   font-size: clamp(11.5px, 2.4vw, 13.5px);
-  color: var(--white-muted);
+  color: #1e3a5f;
+  font-weight: 500;
   margin-top: -4px;
 }
 
-/* Showcase Pulau Pixel Art SIM C */
+/* Showcase Pulau Pixel Art Melayang di Langit Cerah */
 .pixel-island-showcase {
   width: 100%;
-  max-width: 380px;
-  height: clamp(135px, 24vh, 175px);
+  max-width: 390px;
+  height: clamp(140px, 25vh, 180px);
   margin: 0 auto;
-  background: radial-gradient(circle at center, rgba(22, 58, 84, 0.75) 0%, rgba(10, 29, 43, 0.4) 75%, transparent 100%);
-  border: 1.5px solid var(--navy-border);
+  background: linear-gradient(180deg, #38bdf8 0%, #7dd3fc 65%, #e0f2fe 100%);
+  border: 2.5px solid #0284c7;
   border-radius: 10px;
   padding: 4px;
-  box-shadow: inset 0 0 20px rgba(16, 44, 64, 0.9);
+  box-shadow: inset 0 0 18px rgba(2, 132, 199, 0.25), 3px 3px 0 #0369a1;
   animation: islandFloat 3.2s ease-in-out infinite alternate;
 }
 @keyframes islandFloat {
   0% { transform: translateY(0px); }
-  100% { transform: translateY(-4px); }
+  100% { transform: translateY(-5px); }
 }
 
 .px-rider-bob {
@@ -276,18 +292,26 @@ button:active, .btn-primary:active, .btn-secondary:active,
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: var(--lime);
+  color: #0c4a6e;
   margin-bottom: 4px;
 }
+
+/* ==========================================================
+   TOMBOL TINGKAT KESULITAN (Default: Hijau Rumput | Dipilih: Cokelat Tanah)
+   ========================================================== */
 .level-btn-group {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
+
+/* Kondisi Tidak Dipilih = Hijau Rumput */
 .level-btn {
-  background: var(--navy);
-  border: 2px solid var(--navy-border);
-  border-radius: 8px;
+  background: #2e7d32;
+  border: 2.5px solid #1b5e20;
+  border-top-color: #4ade80;
+  border-radius: 6px;
+  box-shadow: 0 4px 0 #14532d;
   padding: 9px 6px;
   color: var(--white);
   cursor: pointer;
@@ -297,13 +321,20 @@ button:active, .btn-primary:active, .btn-secondary:active,
   gap: 4px;
 }
 .level-btn:hover {
-  background: var(--navy-panel);
-  border-color: var(--lime);
+  background: #16a34a;
+  border-color: #86efac;
+  box-shadow: 0 4px 0 #14532d, 0 0 14px rgba(74, 222, 128, 0.6);
 }
+
+/* Kondisi Dipilih (Active) = Cokelat Tanah */
 .level-btn.active {
-  background: var(--navy-panel);
-  border-color: var(--lime);
-  box-shadow: 0 0 14px var(--lime-glow);
+  background: #6d4c41;
+  border: 2.5px solid #3e2723;
+  border-top-color: #a1887f;
+  box-shadow: 0 4px 0 #2b1b17, 0 0 14px rgba(109, 76, 65, 0.55);
+}
+.level-btn.active:hover {
+  background: #795548;
 }
 
 .lvl-title {
@@ -311,42 +342,50 @@ button:active, .btn-primary:active, .btn-secondary:active,
   font-weight: 700;
   font-size: clamp(11px, 2.3vw, 13px);
   color: var(--white);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
 }
-.lvl-desc { font-size: 10px; color: var(--white-muted); }
+.lvl-desc {
+  font-size: 10px;
+  color: #dcfce7;
+}
+.level-btn.active .lvl-desc {
+  color: #f5f5f4;
+}
 
-/* Tombol Utama Electric Lime */
-.btn-primary {
-  background: var(--lime);
-  color: var(--navy);
-  border: 2px solid var(--white);
+/* Tombol Utama Kuning Matahari (Outdoor Sky Theme) */
+#menu-screen .btn-primary {
+  background: linear-gradient(180deg, #fde047 0%, #facc15 100%);
+  color: #422006;
+  border: 2.5px solid #854d0e;
+  border-top-color: #fef08a;
   border-radius: 6px;
   padding: clamp(12px, 2.8vw, 15px) 22px;
   font-family: var(--font-silk);
-  font-size: clamp(13px, 3vw, 16px);
+  font-size: clamp(14px, 3.2vw, 17px);
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   cursor: pointer;
-  box-shadow: 0 4px 0 var(--lime-dark), 0 0 20px var(--lime-glow);
+  box-shadow: 0 4px 0 #713f12, 0 0 18px rgba(250, 204, 21, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
 }
-.btn-primary:hover {
-  background: #e6ff47;
-  box-shadow: 0 4px 0 var(--lime-dark), 0 0 28px rgba(219, 255, 0, 0.75);
+#menu-screen .btn-primary:hover {
+  background: linear-gradient(180deg, #fef08a 0%, #fde047 100%);
+  box-shadow: 0 4px 0 #713f12, 0 0 26px rgba(253, 224, 71, 0.95);
 }
-.btn-primary:active {
-  box-shadow: 0 1px 0 var(--lime-dark), 0 0 24px rgba(219, 255, 0, 0.9) !important;
+#menu-screen .btn-primary:active {
+  box-shadow: 0 1px 0 #713f12 !important;
 }
 
 .controls-guide-box, .history-box {
-  background: rgba(16, 44, 64, 0.65);
-  border: 1.5px solid var(--navy-border);
+  background: rgba(255, 255, 255, 0.82);
+  border: 2px solid #7dd3fc;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 12px;
-  color: var(--white-muted);
+  color: #1e3a5f;
   text-align: left;
   display: flex;
   flex-direction: column;
@@ -361,8 +400,8 @@ button:active, .btn-primary:active, .btn-secondary:active,
   font-family: var(--font-silk);
   font-size: 10px;
   font-weight: 700;
-  color: var(--navy);
-  background: var(--lime);
+  color: var(--white);
+  background: #0284c7;
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -376,7 +415,7 @@ button:active, .btn-primary:active, .btn-secondary:active,
 }
 .history-empty {
   font-size: 11.5px;
-  color: var(--white-muted);
+  color: #475569;
   text-align: center;
   padding: 6px 0;
   font-style: italic;
@@ -385,14 +424,14 @@ button:active, .btn-primary:active, .btn-secondary:active,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--navy-dark);
-  border: 1px solid var(--navy-border);
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 12px;
 }
-.history-item.pass { border-left: 3px solid var(--lime); }
-.history-item.fail { border-left: 3px solid var(--danger); }
+.history-item.pass { border-left: 4px solid #2e7d32; }
+.history-item.fail { border-left: 4px solid var(--danger); }
 .hist-left {
   display: flex;
   align-items: center;
@@ -401,15 +440,16 @@ button:active, .btn-primary:active, .btn-secondary:active,
 .hist-badge {
   font-weight: 800;
   font-size: 11px;
-  color: var(--lime);
+  color: #0284c7;
 }
 .hist-level {
   font-size: 11px;
-  color: var(--white);
+  font-weight: 600;
+  color: #0c4a6e;
 }
 .hist-time {
   font-size: 10.5px;
-  color: var(--white-muted);
+  color: #475569;
   font-family: var(--font-mono);
 }
 .hist-right {
@@ -420,6 +460,7 @@ button:active, .btn-primary:active, .btn-secondary:active,
 .hist-score {
   font-weight: 800;
   font-family: var(--font-mono);
+  color: #0c4a6e;
 }
 .hist-status {
   font-size: 10.5px;
@@ -427,29 +468,31 @@ button:active, .btn-primary:active, .btn-secondary:active,
   padding: 2px 6px;
   border-radius: 4px;
 }
-.status-pass { color: var(--navy); background: var(--lime); }
-.status-fail { color: var(--white); background: rgba(239, 68, 68, 0.35); border: 1px solid var(--danger); }
+.status-pass { color: var(--white); background: #2e7d32; }
+.status-fail { color: var(--white); background: var(--danger); }
 
 .guide-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 4px 12px;
   font-size: 11.5px;
-  color: var(--white);
+  color: #0c4a6e;
+  font-weight: 500;
 }
 .guide-grid kbd {
-  background: var(--navy-panel);
-  border: 1px solid var(--lime);
+  background: #0284c7;
+  border: 1.5px solid #0369a1;
   border-radius: 4px;
   padding: 1px 5px;
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--lime);
+  color: var(--white);
 }
 .mobile-note {
   margin-top: 2px;
   font-size: 11px;
-  color: var(--lime);
+  font-weight: 600;
+  color: #0369a1;
   text-align: center;
 }
 
