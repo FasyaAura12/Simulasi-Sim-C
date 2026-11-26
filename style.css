@@ -693,7 +693,13 @@ button:active, .btn-primary:active, .btn-secondary:active,
   box-shadow: 6px 6px 0 #06131c, 0 0 28px rgba(10, 29, 43, 0.9);
   backdrop-filter: blur(6px);
   z-index: 60;
+  cursor: grab;
+  touch-action: none;
   display: none;
+}
+.matrix-card.dragging {
+  cursor: grabbing;
+  box-shadow: 8px 8px 0 #06131c, 0 0 32px var(--lime-glow);
 }
 .matrix-header {
   display: flex;
@@ -1019,7 +1025,7 @@ button:active, .btn-primary:active, .btn-secondary:active,
 /* ==========================================================
    PENYESUAIAN RESPONSIF HP & TABLET
    ========================================================== */
-@media (max-width: 1100px), (pointer: coarse) {
+@media (max-width: 900px), (pointer: coarse) and (hover: none) {
   .hud-top-bar {
     position: fixed !important;
     top: 40px !important;
@@ -1036,11 +1042,7 @@ button:active, .btn-primary:active, .btn-secondary:active,
     font-size: 10px;
   }
   .matrix-card {
-    top: 50% !important;
-    bottom: auto !important;
-    left: max(10px, env(safe-area-inset-left)) !important;
-    right: auto !important;
-    transform: translateY(-50%) !important;
+    left: max(10px, env(safe-area-inset-left));
     width: min(92vw, 380px);
     padding: 14px 16px;
     z-index: 60;

@@ -750,7 +750,7 @@
       this.dom.finishScreen.classList.toggle('active', newState === STATE_FINISHED);
       const touchEl = document.getElementById('touch-controls');
       if (touchEl) {
-        const isTouchOrSmall = window.matchMedia('(max-width: 1100px), (pointer: coarse)').matches;
+        const isTouchOrSmall = window.matchMedia('(max-width: 900px), (pointer: coarse) and (hover: none)').matches;
         touchEl.style.display = (newState === STATE_PLAYING && isTouchOrSmall) ? 'flex' : 'none';
       }
 
@@ -846,6 +846,49 @@
         this.showGuides = false;
         this.dom.matrixInspector.style.display = 'none';
       });
+
+      // Drag & Drop untuk jendela Transformasi Geometri (Mouse & Sentuh)
+      const matrixCard = this.dom.matrixInspector;
+      if (matrixCard) {
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        matrixCard.addEventListener('pointerdown', e => {
+          if (e.target.closest('#btn-toggle-matrix')) return;
+          isDragging = true;
+          const rect = matrixCard.getBoundingClientRect();
+          dragOffsetX = e.clientX - rect.left;
+          dragOffsetY = e.clientY - rect.top;
+          matrixCard.style.left = `${rect.left}px`;
+          matrixCard.style.top = `${rect.top}px`;
+          matrixCard.style.right = 'auto';
+          matrixCard.style.bottom = 'auto';
+          matrixCard.style.transform = 'none';
+          matrixCard.classList.add('dragging');
+          if (matrixCard.setPointerCapture) {
+            matrixCard.setPointerCapture(e.pointerId);
+          }
+        });
+
+        matrixCard.addEventListener('pointermove', e => {
+          if (!isDragging) return;
+          const maxX = Math.max(8, window.innerWidth - matrixCard.offsetWidth - 8);
+          const maxY = Math.max(8, window.innerHeight - matrixCard.offsetHeight - 8);
+          const nextX = clamp(e.clientX - dragOffsetX, 8, maxX);
+          const nextY = clamp(e.clientY - dragOffsetY, 8, maxY);
+          matrixCard.style.left = `${nextX}px`;
+          matrixCard.style.top = `${nextY}px`;
+        });
+
+        const stopDrag = () => {
+          if (!isDragging) return;
+          isDragging = false;
+          matrixCard.classList.remove('dragging');
+        };
+        matrixCard.addEventListener('pointerup', stopDrag);
+        matrixCard.addEventListener('pointercancel', stopDrag);
+      }
 
       const btnHudRestart = document.getElementById('btn-hud-restart');
       if (btnHudRestart) {
