@@ -677,48 +677,51 @@ button:active, .btn-primary:active, .btn-secondary:active,
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Matrix Transform Card (Jendela Pixel Kiri Bawah / Atas HP) */
+/* Matrix Transform Card (Pop-up Tengah Kiri Layar) */
 .matrix-card {
-  position: absolute;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  position: fixed;
+  top: 50%;
   left: max(16px, env(safe-area-inset-left));
-  background: var(--navy);
-  border: 2px solid var(--lime);
-  border-radius: 4px;
-  padding: 10px 12px;
-  font-size: 11px;
-  max-width: 330px;
+  transform: translateY(-50%);
+  background: rgba(16, 44, 64, 0.96);
+  border: 2.5px solid var(--lime);
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: 13px;
+  width: min(90vw, 420px);
   pointer-events: auto;
-  box-shadow: 4px 4px 0 #06131c, 0 0 16px rgba(16, 44, 64, 0.8);
+  box-shadow: 6px 6px 0 #06131c, 0 0 28px rgba(10, 29, 43, 0.9);
+  backdrop-filter: blur(6px);
+  z-index: 60;
   display: none;
 }
 .matrix-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1.5px solid var(--navy-border);
   font-family: var(--font-silk);
   font-weight: 700;
   color: var(--lime);
-  font-size: 10.5px;
+  font-size: 13px;
 }
 .matrix-code {
   font-family: var(--font-mono);
-  line-height: 1.4;
+  line-height: 1.65;
   color: var(--white);
-  font-size: 10.5px;
+  font-size: 13px;
 }
 .icon-btn {
   background: var(--navy-panel);
-  border: 1px solid var(--white);
-  border-radius: 2px;
+  border: 1.5px solid var(--white);
+  border-radius: 4px;
   color: var(--white);
   cursor: pointer;
   font-family: var(--font-silk);
-  font-size: 10px;
-  padding: 1px 5px;
+  font-size: 12px;
+  padding: 3px 8px;
 }
 .icon-btn:hover {
   background: var(--lime);
@@ -1033,11 +1036,31 @@ button:active, .btn-primary:active, .btn-secondary:active,
     font-size: 10px;
   }
   .matrix-card {
-    top: 94px !important;
+    top: 50% !important;
     bottom: auto !important;
-    left: 10px !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
     right: auto !important;
-    z-index: 45;
+    transform: translateY(-50%) !important;
+    width: min(92vw, 380px);
+    padding: 14px 16px;
+    z-index: 60;
+  }
+  .matrix-header {
+    font-size: 11.5px;
+  }
+  .matrix-code {
+    font-size: 11.5px;
+    line-height: 1.55;
+  }
+  .alert-banner {
+    position: fixed;
+    bottom: max(100px, calc(env(safe-area-inset-bottom) + 96px));
+    left: 12px;
+    right: 12px;
+    margin: 0 auto;
+    width: fit-content;
+    max-width: calc(100vw - 24px);
+    z-index: 48;
   }
   #touch-controls,
   .touch-controls {
